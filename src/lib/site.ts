@@ -4,6 +4,7 @@ import {
   Folder,
   CheckSquare,
   Settings2,
+  Users,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
@@ -16,6 +17,7 @@ export type NavItem = {
 export const sidebarNav: NavItem[] = [
   { title: "Dashboard", href: "/dashboard#dashboard", icon: LayoutDashboard },
   { title: "Projects", href: "/dashboard/projects", icon: Folder },
+  { title: "Workspace Settings", href: "/dashboard/workspace", icon: Users },
   { title: "Tasks", href: "/dashboard#tasks", icon: CheckSquare },
   { title: "AI Insights", href: "/dashboard#insights", icon: Sparkles },
   { title: "Settings", href: "/dashboard#settings", icon: Settings2 },
