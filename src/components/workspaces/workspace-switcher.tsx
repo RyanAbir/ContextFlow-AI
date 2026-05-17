@@ -9,7 +9,7 @@ import dynamic from "next/dynamic"
 const CreateWorkspaceForm = dynamic(() => import("./CreateWorkspaceForm").then((m) => m.CreateWorkspaceForm), { ssr: false })
 
 export function WorkspaceSwitcher() {
-  const { currentWorkspace, setCurrentWorkspace, workspaces, loading } = useWorkspace()
+  const { currentWorkspace, setCurrentWorkspace, workspaces, loading, error } = useWorkspace()
   const [open, setOpen] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -36,7 +36,7 @@ export function WorkspaceSwitcher() {
         aria-haspopup="menu"
       >
         <span className="truncate max-w-[12rem] text-sm font-medium text-foreground">
-          {currentWorkspace?.name ?? "Select workspace"}
+          {loading ? "Loading workspaces..." : currentWorkspace?.name ?? "Select workspace"}
         </span>
         <ChevronDown className="h-4 w-4 text-muted-foreground" />
       </Button>
@@ -47,6 +47,10 @@ export function WorkspaceSwitcher() {
             {loading ? (
               <div className="rounded-2xl border border-border bg-card/95 px-3 py-3 text-sm text-muted-foreground">
                 Loading workspaces...
+              </div>
+            ) : error ? (
+              <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-3 py-3 text-sm text-destructive">
+                {error}
               </div>
             ) : workspaces && workspaces.length > 0 ? (
               workspaces.map((workspace) => (
@@ -65,7 +69,7 @@ export function WorkspaceSwitcher() {
               ))
             ) : (
               <div className="rounded-2xl border border-border bg-card/95 px-3 py-3 text-sm text-muted-foreground">
-                No workspaces found
+                No workspaces yet. Create one to get started.
               </div>
             )}
           </div>

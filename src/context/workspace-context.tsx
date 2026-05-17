@@ -11,6 +11,7 @@ type WorkspaceContextValue = {
   setCurrentWorkspace: (workspace: Workspace | null) => void
   workspaces: Workspace[] | null
   loading: boolean
+  error: string | null
   addWorkspace: (workspace: Workspace) => void
 }
 
@@ -21,36 +22,76 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null)
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+
+    const applyState = (update: () => void) => {
+      queueMicrotask(() => {
+        if (!cancelled) update()
+      })
+    }
+
     if (authLoading) {
-      setLoading(true)
-      return
+      applyState(() => {
+        setLoading(true)
+        setError(null)
+      })
+      return () => {
+        cancelled = true
+      }
     }
 
     if (!user) {
-      setWorkspaces(null)
-      setCurrentWorkspace(null)
-      setLoading(false)
-      return
+      applyState(() => {
+        setWorkspaces(null)
+        setCurrentWorkspace(null)
+        setLoading(false)
+        setError(null)
+      })
+      return () => {
+        cancelled = true
+      }
     }
 
-    setLoading(true)
-    const unsubscribe = subscribeToUserWorkspaces(user.uid, (list) => {
-      setWorkspaces(list)
-      setLoading(false)
-      setCurrentWorkspace((current) => {
-        if (current && list.some((workspace) => workspace.id === current.id)) {
-          return current
-        }
-        return list[0] ?? null
-      })
+    applyState(() => {
+      setLoading(true)
+      setError(null)
     })
 
-    return () => unsubscribe()
+    const unsubscribe = subscribeToUserWorkspaces(
+      user.uid,
+      (list) => {
+        if (cancelled) return
+        setWorkspaces(list)
+        setLoading(false)
+        setError(null)
+        setCurrentWorkspace((current) => {
+          if (current && list.some((workspace) => workspace.id === current.id)) {
+            return current
+          }
+          return list[0] ?? null
+        })
+      },
+      (err) => {
+        if (cancelled) return
+        console.error("Failed to load workspaces", err)
+        setWorkspaces([])
+        setCurrentWorkspace(null)
+        setError(err.message || "Failed to load workspaces")
+        setLoading(false)
+      }
+    )
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
   }, [authLoading, user])
 
   const addWorkspace = (workspace: Workspace) => {
+    setError(null)
     setWorkspaces((prev) => {
       const list = prev ?? []
       if (list.some((w) => w.id === workspace.id)) return list
@@ -60,8 +101,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }
 
   const value = useMemo(
-    () => ({ currentWorkspace, setCurrentWorkspace, workspaces, loading, addWorkspace }),
-    [currentWorkspace, loading, workspaces]
+    () => ({ currentWorkspace, setCurrentWorkspace, workspaces, loading, error, addWorkspace }),
+    [currentWorkspace, loading, error, workspaces]
   )
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>
