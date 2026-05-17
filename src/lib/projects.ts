@@ -33,6 +33,26 @@ export async function createProject(userId: string, data: {
 
   await addDoc(projectsRef, {
     userId,
+    createdBy: userId,
+    title: data.title,
+    description: data.description ?? "",
+    status: data.status ?? "active",
+    createdAt: serverTimestamp(),
+  })
+}
+
+export async function createWorkspaceProject(workspaceId: string, userId: string, data: {
+  title: string
+  description?: string
+  status?: ProjectStatus
+}): Promise<void> {
+  const database = ensureDb()
+  const projectsRef = collection(database, "projects")
+
+  await addDoc(projectsRef, {
+    userId,
+    workspaceId,
+    createdBy: userId,
     title: data.title,
     description: data.description ?? "",
     status: data.status ?? "active",
@@ -51,6 +71,8 @@ export function subscribeToUserProjects(userId: string, onChange: (projects: Pro
       const createdField = data.createdAt as { toDate?: () => Date } | undefined
       const created = createdField && typeof createdField.toDate === "function" ? createdField.toDate() : new Date()
       const userId = (data.userId as string) ?? ""
+      const workspaceId = (data.workspaceId as string) ?? undefined
+      const createdBy = (data.createdBy as string) ?? undefined
       const title = (data.title as string) ?? "Untitled"
       const description = (data.description as string) ?? ""
       const status = (data.status as ProjectStatus) ?? "active"
@@ -58,6 +80,8 @@ export function subscribeToUserProjects(userId: string, onChange: (projects: Pro
       return {
         id: d.id,
         userId,
+        workspaceId,
+        createdBy,
         title,
         description,
         status,
@@ -78,6 +102,8 @@ export async function listUserProjects(userId: string): Promise<Project[]> {
     const createdField = data.createdAt as { toDate?: () => Date } | undefined
     const created = createdField && typeof createdField.toDate === "function" ? createdField.toDate() : new Date()
     const userId = (data.userId as string) ?? ""
+    const workspaceId = (data.workspaceId as string) ?? undefined
+    const createdBy = (data.createdBy as string) ?? undefined
     const title = (data.title as string) ?? "Untitled"
     const description = (data.description as string) ?? ""
     const status = (data.status as ProjectStatus) ?? "active"
@@ -85,6 +111,8 @@ export async function listUserProjects(userId: string): Promise<Project[]> {
     return {
       id: d.id,
       userId,
+      workspaceId,
+      createdBy,
       title,
       description,
       status,
@@ -121,9 +149,61 @@ export async function getProjectById(projectId: string) {
   return {
     id: snap.id,
     userId: (data.userId as string) ?? "",
+    workspaceId: (data.workspaceId as string) ?? undefined,
+    createdBy: (data.createdBy as string) ?? undefined,
     title: (data.title as string) ?? "Untitled",
     description: (data.description as string) ?? "",
     status: (data.status as ProjectStatus) ?? "active",
     createdAt: created,
   }
+}
+
+// Workspace-scoped helpers
+export function subscribeToWorkspaceProjects(workspaceId: string, onChange: (projects: Project[]) => void) {
+  const database = ensureDb()
+  const projectsRef = collection(database, "projects")
+  const q = query(projectsRef, where("workspaceId", "==", workspaceId), orderBy("createdAt", "desc"), limit(100))
+
+  return onSnapshot(q, (snapshot) => {
+    const results: Project[] = snapshot.docs.map((d) => {
+      const data = d.data() as Record<string, unknown>
+      const createdField = data.createdAt as { toDate?: () => Date } | undefined
+      const created = createdField && typeof createdField.toDate === "function" ? createdField.toDate() : new Date()
+
+      return {
+        id: d.id,
+        userId: (data.userId as string) ?? "",
+        workspaceId: (data.workspaceId as string) ?? undefined,
+        createdBy: (data.createdBy as string) ?? undefined,
+        title: (data.title as string) ?? "Untitled",
+        description: (data.description as string) ?? "",
+        status: (data.status as ProjectStatus) ?? "active",
+        createdAt: created,
+      }
+    })
+    onChange(results)
+  })
+}
+
+export async function getWorkspaceProjects(workspaceId: string): Promise<Project[]> {
+  const database = ensureDb()
+  const projectsRef = collection(database, "projects")
+  const q = query(projectsRef, where("workspaceId", "==", workspaceId), orderBy("createdAt", "desc"), limit(100))
+  const snap = await getDocs(q)
+  return snap.docs.map((d) => {
+    const data = d.data() as Record<string, unknown>
+    const createdField = data.createdAt as { toDate?: () => Date } | undefined
+    const created = createdField && typeof createdField.toDate === "function" ? createdField.toDate() : new Date()
+
+    return {
+      id: d.id,
+      userId: (data.userId as string) ?? "",
+      workspaceId: (data.workspaceId as string) ?? undefined,
+      createdBy: (data.createdBy as string) ?? undefined,
+      title: (data.title as string) ?? "Untitled",
+      description: (data.description as string) ?? "",
+      status: (data.status as ProjectStatus) ?? "active",
+      createdAt: created,
+    }
+  })
 }
