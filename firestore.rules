@@ -14,6 +14,21 @@ service cloud.firestore {
       return isSignedIn() && get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).exists();
     }
 
+    function isWorkspaceAdmin(workspaceId) {
+      if (!isSignedIn()) { return false; }
+      if (isWorkspaceOwner(workspaceId)) { return true; }
+      let member = get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
+      return member.exists() && member.data.role == 'admin';
+    }
+
+    function canReadWorkspace(workspaceId) {
+      return isWorkspaceOwner(workspaceId) || isWorkspaceMember(workspaceId);
+    }
+
+    function canManageWorkspace(workspaceId) {
+      return isWorkspaceOwner(workspaceId) || isWorkspaceAdmin(workspaceId);
+    }
+
     // Default: Deny all access
     match /{document=**} {
       allow read, write: if false;
@@ -52,24 +67,45 @@ service cloud.firestore {
       }
     }
 
-    // Projects collection: User-specific project access
+    // Projects collection: supports personal projects and workspace-owned projects
     match /projects/{projectId} {
-      // Allow read if user owns the project
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      
-      // Allow update/delete if user owns the project
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-      
-      // Allow create only if the requesting user is setting themselves as the owner
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Create: allow personal project creation or workspace project creation by workspace members
+      allow create: if isSignedIn() && (
+        // Personal project
+        (request.resource.data.userId == request.auth.uid)
+        // Workspace project: workspaceId provided, user is member, and createdBy matches requester
+        || (
+          request.resource.data.workspaceId != null
+          && request.resource.data.createdBy == request.auth.uid
+          && isWorkspaceMember(request.resource.data.workspaceId)
+        )
+      );
 
-      // Tasks subcollection: Allow access only if parent project belongs to user
+      // Read: personal owners or workspace members
+      allow read: if isSignedIn() && (
+        (resource.data.userId == request.auth.uid)
+        || (resource.data.workspaceId != null && canReadWorkspace(resource.data.workspaceId))
+      );
+
+      // Update: personal owners or workspace managers (owner/admin)
+      allow update: if isSignedIn() && (
+        (resource.data.userId == request.auth.uid)
+        || (resource.data.workspaceId != null && canManageWorkspace(resource.data.workspaceId))
+      );
+
+      // Delete: personal owners or workspace managers
+      allow delete: if isSignedIn() && (
+        (resource.data.userId == request.auth.uid)
+        || (resource.data.workspaceId != null && canManageWorkspace(resource.data.workspaceId))
+      );
+
+      // Tasks subcollection: keep existing rules (personal-project logic remains)
       match /tasks/{taskId} {
         allow read: if request.auth != null && get(/databases/(default)/documents/projects/{projectId}).data.userId == request.auth.uid;
         allow create, update, delete: if request.auth != null && get(/databases/(default)/documents/projects/{projectId}).data.userId == request.auth.uid;
       }
 
-      // Context Notes subcollection: Allow access only if parent project belongs to user
+      // Context Notes subcollection: keep existing rules (personal-project logic remains)
       match /contextNotes/{noteId} {
         allow read: if request.auth != null && get(/databases/(default)/documents/projects/{projectId}).data.userId == request.auth.uid;
         allow create, update, delete: if request.auth != null && get(/databases/(default)/documents/projects/{projectId}).data.userId == request.auth.uid;
