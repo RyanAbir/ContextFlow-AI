@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { useAuth } from "@/context/auth-context"
 import { createWorkspace, getWorkspaceById } from "@/lib/workspaces"
 import { useWorkspace } from "@/context/workspace-context"
@@ -43,41 +42,39 @@ export function CreateWorkspaceForm({ onClose }: CreateWorkspaceFormProps) {
   }
 
   return (
-    <Card className="space-y-4">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">Workspace name</label>
-          <input
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="mt-2 min-h-11 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
-            placeholder="My team workspace"
-          />
-        </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="text-sm font-medium text-muted-foreground">Workspace name</label>
+        <input
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="mt-2 min-h-11 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
+          placeholder="My team workspace"
+        />
+      </div>
 
-        <div>
-          <label className="text-sm font-medium text-muted-foreground">Description</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="mt-2 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
-            rows={3}
-            placeholder="Optional description"
-          />
-        </div>
+      <div>
+        <label className="text-sm font-medium text-muted-foreground">Description</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="mt-2 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
+          rows={3}
+          placeholder="Optional description"
+        />
+      </div>
 
-        {error ? <div className="text-sm text-destructive">{error}</div> : null}
+      {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isLoading || name.trim() === ""}>
-            {isLoading ? "Creating..." : "Create workspace"}
-          </Button>
-        </div>
-      </form>
-    </Card>
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
+        <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isLoading || name.trim() === ""}>
+          {isLoading ? "Creating..." : "Create workspace"}
+        </Button>
+      </div>
+    </form>
   )
 }
