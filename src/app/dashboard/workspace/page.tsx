@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardShell } from "@/components/layout/dashboard-shell"
 import { WorkspaceInvitePanel } from "@/components/workspaces/workspace-invite-panel"
@@ -8,6 +8,7 @@ import { useAuth } from "@/context/auth-context"
 import { useWorkspace } from "@/context/workspace-context"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { deleteWorkspace } from "@/lib/workspaces"
 
 export default function WorkspaceSettingsPage() {
   const router = useRouter()
@@ -36,7 +37,33 @@ export default function WorkspaceSettingsPage() {
 
 function WorkspaceSettingsContent() {
   const router = useRouter()
-  const { currentWorkspace } = useWorkspace()
+  const { user } = useAuth()
+  const { currentWorkspace, setCurrentWorkspace } = useWorkspace()
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null)
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+
+  const isWorkspaceOwner = currentWorkspace?.ownerId === user?.uid
+
+  async function handleDeleteWorkspace() {
+    if (!currentWorkspace || !user) return
+    setDeleteLoading(true)
+    setDeleteError(null)
+    setDeleteSuccess(null)
+
+    try {
+      await deleteWorkspace(user.uid, currentWorkspace.id)
+      setDeleteSuccess(`Deleted ${currentWorkspace.name}.`)
+      setCurrentWorkspace(null)
+      setShowDeleteConfirmation(false)
+      router.push("/dashboard")
+    } catch (error) {
+      setDeleteError((error as Error).message ?? "Unable to delete workspace.")
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -106,6 +133,51 @@ function WorkspaceSettingsContent() {
               <p className="mt-4 text-sm leading-6 text-muted-foreground">
                 Invite team members below or manage workspace settings as your role allows. Invite acceptance and membership management will appear once users respond.
               </p>
+            </Card>
+
+            <Card className="rounded-2xl border border-destructive/50 bg-destructive/5 p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.18em] text-destructive">Danger zone</p>
+                  <h2 className="mt-2 text-xl font-semibold text-foreground">Delete workspace</h2>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteConfirmation(true)}
+                  disabled={!isWorkspaceOwner || deleteLoading}
+                >
+                  Delete workspace
+                </Button>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                This will remove the workspace and related workspace membership records. Only the workspace owner may perform this action.
+              </p>
+
+              {showDeleteConfirmation ? (
+                <div className="mt-6 rounded-2xl border border-destructive/50 bg-destructive/10 p-4">
+                  <p className="text-sm text-destructive">
+                    Confirm deletion of <span className="font-semibold text-foreground">{currentWorkspace.name}</span>. This cannot be undone.
+                  </p>
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    <Button variant="secondary" size="sm" onClick={() => setShowDeleteConfirmation(false)} disabled={deleteLoading}>
+                      Cancel
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={handleDeleteWorkspace} disabled={deleteLoading}>
+                      {deleteLoading ? "Deleting..." : "Confirm delete"}
+                    </Button>
+                  </div>
+                  {deleteError ? (
+                    <p className="mt-3 text-sm text-destructive">{deleteError}</p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {deleteSuccess ? (
+                <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-foreground">
+                  {deleteSuccess}
+                </div>
+              ) : null}
             </Card>
           </div>
 

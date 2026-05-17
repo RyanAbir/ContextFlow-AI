@@ -40,6 +40,36 @@ service cloud.firestore {
         && resource.data.invitedEmail == request.auth.token.email;
     }
 
+    function queryFilterValue(fieldName) {
+      return request.query.where.size() > 0 && request.query.where[0].field == fieldName
+        ? request.query.where[0].value
+        : request.query.where.size() > 1 && request.query.where[1].field == fieldName
+          ? request.query.where[1].value
+          : null;
+    }
+
+    function queryFilterOp(fieldName) {
+      return request.query.where.size() > 0 && request.query.where[0].field == fieldName
+        ? request.query.where[0].op
+        : request.query.where.size() > 1 && request.query.where[1].field == fieldName
+          ? request.query.where[1].op
+          : null;
+    }
+
+    function isInviteWorkspaceAdminQuery() {
+      let workspaceId = queryFilterValue('workspaceId');
+      return request.auth != null
+        && workspaceId is string
+        && queryFilterOp('workspaceId') == '=='
+        && isWorkspaceAdmin(workspaceId);
+    }
+
+    function isInviteRecipientQuery() {
+      return request.auth.token.email != null
+        && queryFilterValue('invitedEmail') == request.auth.token.email
+        && queryFilterOp('invitedEmail') == '==';
+    }
+
     function isPendingInviteForRequest(inviteId, workspaceId) {
       return request.auth.token.email != null
         && exists(/databases/$(database)/documents/workspaceInvites/$(inviteId))
@@ -104,6 +134,26 @@ service cloud.firestore {
       }
     }
 
+    match /tasks/{taskId} {
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.projectId is string
+        && get(/databases/$(database)/documents/projects/$(request.resource.data.projectId)).data.userId == request.auth.uid;
+
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /contextNotes/{noteId} {
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.projectId is string
+        && get(/databases/$(database)/documents/projects/$(request.resource.data.projectId)).data.userId == request.auth.uid;
+
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
     // Projects collection: supports personal projects and workspace-owned projects
     match /projects/{projectId} {
       // Create: allow personal project creation or workspace project creation by workspace members
@@ -161,7 +211,8 @@ service cloud.firestore {
 
       // Read: workspace owner/admin can query invites for their workspace;
       // invited users can query invites addressed to their email.
-      allow get, list: if isSignedIn() && (isInviteWorkspaceAdmin() || isInviteRecipient());
+      allow get: if isSignedIn() && (isInviteWorkspaceAdmin() || isInviteRecipient());
+      allow list: if isSignedIn() && (isInviteWorkspaceAdminQuery() || isInviteRecipientQuery());
 
       // Update: invited user may only change `status` (accept/decline) and nothing else;
       // workspace admin/owner may update (e.g., cancel) the invite

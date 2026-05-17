@@ -14,6 +14,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
   type Unsubscribe,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
@@ -251,11 +252,19 @@ export async function deleteWorkspace(userId: string, workspaceId: string): Prom
   const data = snap.data() as Record<string, unknown>
   if ((data.ownerId as string) !== userId) throw new Error("Not authorized to delete this workspace")
 
-  // Note: Deleting the workspace document does not remove subcollections. For production, consider a Cloud Function to cascade deletions.
+  const membersRef = collection(database, "workspaces", workspaceId, "members")
   try {
-    await deleteDoc(ref)
+    const membersSnap = await getDocs(membersRef)
+    const batch = writeBatch(database)
+
+    membersSnap.docs.forEach((memberDoc) => {
+      batch.delete(memberDoc.ref)
+    })
+    batch.delete(ref)
+
+    await batch.commit()
   } catch (error) {
-    logFirestoreError("deleteWorkspace", "delete workspaces/{workspaceId}", error)
+    logFirestoreError("deleteWorkspace", "delete workspaces/{workspaceId} and workspaces/{workspaceId}/members", error)
     throw error
   }
 }

@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   limit,
   onSnapshot,
   orderBy,
@@ -81,6 +82,34 @@ export async function createTask(projectId: string, userId: string, data: Create
     dueDate: data.dueDate ?? null,
     createdAt: serverTimestamp(),
   })
+}
+
+export async function listUserTasks(userId: string): Promise<Task[]> {
+  const database = ensureDb()
+  const tasksRef = collection(database, "tasks")
+  const q = query(tasksRef, where("userId", "==", userId), orderBy("createdAt", "desc"))
+
+  const snap = await getDocs(q)
+  return snap.docs.map((d) => mapTask(d.id, d.data() as Record<string, unknown>))
+}
+
+export async function getTasksForProjectIds(projectIds: string[]): Promise<Task[]> {
+  const database = ensureDb()
+  const tasksRef = collection(database, "tasks")
+  const chunkSize = 10
+  const batches: Promise<Task[]>[] = []
+
+  for (let index = 0; index < projectIds.length; index += chunkSize) {
+    const chunk = projectIds.slice(index, index + chunkSize)
+    if (chunk.length === 0) continue
+    const q = query(tasksRef, where("projectId", "in", chunk))
+    batches.push(
+      getDocs(q).then((snap) => snap.docs.map((d) => mapTask(d.id, d.data() as Record<string, unknown>)))
+    )
+  }
+
+  const results = await Promise.all(batches)
+  return results.flat()
 }
 
 export function subscribeToProjectTasks(projectId: string, userId: string, onChange: (tasks: Task[]) => void) {

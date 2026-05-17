@@ -45,11 +45,11 @@ export async function createWorkspaceProject(workspaceId: string, userId: string
   title: string
   description?: string
   status?: ProjectStatus
-}): Promise<void> {
+}): Promise<string> {
   const database = ensureDb()
   const projectsRef = collection(database, "projects")
 
-  await addDoc(projectsRef, {
+  const docRef = await addDoc(projectsRef, {
     userId,
     workspaceId,
     createdBy: userId,
@@ -58,6 +58,8 @@ export async function createWorkspaceProject(workspaceId: string, userId: string
     status: data.status ?? "active",
     createdAt: serverTimestamp(),
   })
+
+  return docRef.id
 }
 
 export function subscribeToUserProjects(userId: string, onChange: (projects: Project[]) => void) {
