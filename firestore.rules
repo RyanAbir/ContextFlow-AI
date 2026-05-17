@@ -31,6 +31,15 @@ service cloud.firestore {
       return isWorkspaceOwner(workspaceId) || isWorkspaceAdmin(workspaceId);
     }
 
+    function isInviteWorkspaceAdmin() {
+      return resource.data.workspaceId != null && isWorkspaceAdmin(resource.data.workspaceId);
+    }
+
+    function isInviteRecipient() {
+      return request.auth.token.email != null
+        && resource.data.invitedEmail == request.auth.token.email;
+    }
+
     // Default: Deny all access
     match /{document=**} {
       allow read, write: if false;
@@ -124,14 +133,9 @@ service cloud.firestore {
         && request.resource.data.invitedEmail != null
         && request.resource.data.status == 'pending';
 
-      // Read: workspace owner/admin can read invites for their workspace;
-      // invited user can read invites addressed to their email
-      allow read: if isSignedIn() && (
-        // workspace admin/owner can read
-        (resource.data.workspaceId != null && isWorkspaceAdmin(resource.data.workspaceId))
-        // invited user can read their invite
-        || (request.auth.token.email != null && resource.data.invitedEmail == request.auth.token.email)
-      );
+      // Read: workspace owner/admin can query invites for their workspace;
+      // invited users can query invites addressed to their email.
+      allow get, list: if isSignedIn() && (isInviteWorkspaceAdmin() || isInviteRecipient());
 
       // Update: invited user may only change `status` (accept/decline) and nothing else;
       // workspace admin/owner may update (e.g., cancel) the invite
@@ -150,11 +154,11 @@ service cloud.firestore {
           && (request.resource.data.status == 'accepted' || request.resource.data.status == 'declined')
         )
         // owner/admin may update any field on the invite
-        || (resource.data.workspaceId != null && isWorkspaceAdmin(resource.data.workspaceId))
+        || isInviteWorkspaceAdmin()
       );
 
       // Delete: only workspace owner/admin may delete invites
-      allow delete: if isSignedIn() && resource.data.workspaceId != null && isWorkspaceAdmin(resource.data.workspaceId);
+      allow delete: if isSignedIn() && isInviteWorkspaceAdmin();
     }
   }
 }

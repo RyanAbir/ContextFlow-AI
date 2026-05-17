@@ -13,6 +13,7 @@ import {
   where,
   onSnapshot,
   increment,
+  type Unsubscribe,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type { WorkspaceInvite, WorkspaceInviteStatus } from "@/types/workspace-invite"
@@ -36,6 +37,40 @@ async function isWorkspaceOwnerOrAdmin(userId: string, workspaceId: string): Pro
   const data = snap.data() as Record<string, unknown>
   const role = data.role as WorkspaceRole | undefined
   return role === "admin" || role === "owner"
+}
+
+export async function canManageWorkspaceInvites(userId: string, workspaceId: string): Promise<boolean> {
+  return isWorkspaceOwnerOrAdmin(userId, workspaceId)
+}
+
+function workspaceInvitesQuery(database: ReturnType<typeof ensureDb>, workspaceId: string) {
+  const invitesRef = collection(database, "workspaceInvites")
+  return query(
+    invitesRef,
+    where("workspaceId", "==", workspaceId),
+    where("status", "==", "pending"),
+    orderBy("createdAt", "desc"),
+    limit(200)
+  )
+}
+
+function mapWorkspaceInvite(id: string, data: Record<string, unknown>): WorkspaceInvite {
+  const createdField = data.createdAt as { toDate?: () => Date } | undefined
+  const expiresField = data.expiresAt as { toDate?: () => Date } | undefined
+  const created = createdField && typeof createdField.toDate === "function" ? createdField.toDate() : new Date()
+  const expires = expiresField && typeof expiresField.toDate === "function" ? expiresField.toDate() : (data.expiresAt as Date | null)
+
+  return {
+    id,
+    workspaceId: (data.workspaceId as string) ?? "",
+    workspaceName: (data.workspaceName as string) ?? "",
+    invitedEmail: (data.invitedEmail as string) ?? "",
+    invitedBy: (data.invitedBy as string) ?? "",
+    role: (data.role as WorkspaceRole) ?? ("member" as WorkspaceRole),
+    status: (data.status as WorkspaceInviteStatus) ?? ("pending" as WorkspaceInviteStatus),
+    createdAt: created,
+    expiresAt: expires ?? null,
+  }
 }
 
 export async function createWorkspaceInvite(
@@ -75,28 +110,31 @@ export async function getWorkspaceInvites(userId: string, workspaceId: string): 
   const allowed = await isWorkspaceOwnerOrAdmin(userId, workspaceId)
   if (!allowed) throw new Error("Not authorized to view invites for this workspace")
 
-  const invitesRef = collection(database, "workspaceInvites")
-  const q = query(invitesRef, where("workspaceId", "==", workspaceId), orderBy("createdAt", "desc"), limit(200))
+  const q = workspaceInvitesQuery(database, workspaceId)
   const snap = await getDocs(q)
-  return snap.docs.map((d) => {
-    const data = d.data() as Record<string, unknown>
-    const createdField = data.createdAt as { toDate?: () => Date } | undefined
-    const expiresField = data.expiresAt as { toDate?: () => Date } | undefined
-    const created = createdField && typeof createdField.toDate === "function" ? createdField.toDate() : new Date()
-    const expires = expiresField && typeof expiresField.toDate === "function" ? expiresField.toDate() : (data.expiresAt as Date | null)
+  return snap.docs.map((d) => mapWorkspaceInvite(d.id, d.data() as Record<string, unknown>))
+}
 
-    return {
-      id: d.id,
-      workspaceId: (data.workspaceId as string) ?? "",
-      workspaceName: (data.workspaceName as string) ?? "",
-      invitedEmail: (data.invitedEmail as string) ?? "",
-      invitedBy: (data.invitedBy as string) ?? "",
-      role: (data.role as WorkspaceRole) ?? ("member" as WorkspaceRole),
-      status: (data.status as WorkspaceInviteStatus) ?? ("pending" as WorkspaceInviteStatus),
-      createdAt: created,
-      expiresAt: expires ?? null,
+export async function subscribeToWorkspaceInvites(
+  userId: string,
+  workspaceId: string,
+  onChange: (invites: WorkspaceInvite[]) => void,
+  onError?: (error: Error) => void
+): Promise<Unsubscribe> {
+  const database = ensureDb()
+
+  const allowed = await isWorkspaceOwnerOrAdmin(userId, workspaceId)
+  if (!allowed) throw new Error("Not authorized to view invites for this workspace")
+
+  return onSnapshot(
+    workspaceInvitesQuery(database, workspaceId),
+    (snapshot) => {
+      onChange(snapshot.docs.map((d) => mapWorkspaceInvite(d.id, d.data() as Record<string, unknown>)))
+    },
+    (error) => {
+      onError?.(error)
     }
-  })
+  )
 }
 
 export async function getPendingInvitesForEmail(userEmail: string): Promise<WorkspaceInvite[]> {
@@ -112,25 +150,7 @@ export async function getPendingInvitesForEmail(userEmail: string): Promise<Work
   )
   const snap = await getDocs(q)
 
-  return snap.docs.map((d) => {
-    const data = d.data() as Record<string, unknown>
-    const createdField = data.createdAt as { toDate?: () => Date } | undefined
-    const expiresField = data.expiresAt as { toDate?: () => Date } | undefined
-    const created = createdField && typeof createdField.toDate === "function" ? createdField.toDate() : new Date()
-    const expires = expiresField && typeof expiresField.toDate === "function" ? expiresField.toDate() : (data.expiresAt as Date | null)
-
-    return {
-      id: d.id,
-      workspaceId: (data.workspaceId as string) ?? "",
-      workspaceName: (data.workspaceName as string) ?? "",
-      invitedEmail: (data.invitedEmail as string) ?? "",
-      invitedBy: (data.invitedBy as string) ?? "",
-      role: (data.role as WorkspaceRole) ?? ("member" as WorkspaceRole),
-      status: (data.status as WorkspaceInviteStatus) ?? ("pending" as WorkspaceInviteStatus),
-      createdAt: created,
-      expiresAt: expires ?? null,
-    }
-  })
+  return snap.docs.map((d) => mapWorkspaceInvite(d.id, d.data() as Record<string, unknown>))
 }
 
 export async function acceptWorkspaceInvite(inviteId: string, userId: string, userEmail: string): Promise<void> {

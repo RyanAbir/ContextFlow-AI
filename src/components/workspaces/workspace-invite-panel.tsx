@@ -6,8 +6,9 @@ import { Card } from "@/components/ui/card"
 import { useAuth } from "@/context/auth-context"
 import { useWorkspace } from "@/context/workspace-context"
 import {
+  canManageWorkspaceInvites,
   createWorkspaceInvite,
-  getWorkspaceInvites,
+  subscribeToWorkspaceInvites,
 } from "@/lib/workspace-invites"
 import type { WorkspaceInvite } from "@/types/workspace-invite"
 
@@ -19,16 +20,47 @@ export function WorkspaceInvitePanel() {
   const [loading, setLoading] = useState(false)
   const [invites, setInvites] = useState<WorkspaceInvite[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isManager, setIsManager] = useState<boolean | null>(null)
 
   useEffect(() => {
     let mounted = true
-    const load = async () => {
-      if (!currentWorkspace || !user) return
+    let unsubscribe: (() => void) | undefined
+    const loadAccess = async () => {
+      if (!currentWorkspace || !user) {
+        setIsManager(false)
+        setInvites([])
+        return
+      }
       setLoading(true)
+      setError(null)
       try {
-        const list = await getWorkspaceInvites(user.uid, currentWorkspace.id)
+        const allowed = await canManageWorkspaceInvites(user.uid, currentWorkspace.id)
         if (!mounted) return
-        setInvites(list)
+        setIsManager(allowed)
+        if (!allowed) {
+          setInvites([])
+          return
+        }
+
+        unsubscribe = await subscribeToWorkspaceInvites(
+          user.uid,
+          currentWorkspace.id,
+          (list) => {
+            if (!mounted) return
+            setInvites(list)
+            setLoading(false)
+          },
+          (err) => {
+            console.error(err)
+            if (!mounted) return
+            setError(err.message || "Failed to load invites")
+            setLoading(false)
+          }
+        )
+        if (!mounted) {
+          unsubscribe()
+          return
+        }
       } catch (err) {
         console.error(err)
         if (!mounted) return
@@ -37,9 +69,10 @@ export function WorkspaceInvitePanel() {
         if (mounted) setLoading(false)
       }
     }
-    load()
+    loadAccess()
     return () => {
       mounted = false
+      unsubscribe?.()
     }
   }, [currentWorkspace, user])
 
@@ -50,8 +83,6 @@ export function WorkspaceInvitePanel() {
     setLoading(true)
     try {
       await createWorkspaceInvite(user.uid, currentWorkspace.id, email, role)
-      const list = await getWorkspaceInvites(user.uid, currentWorkspace.id)
-      setInvites(list)
       setEmail("")
       setRole("member")
     } catch (err) {
@@ -61,33 +92,6 @@ export function WorkspaceInvitePanel() {
       setLoading(false)
     }
   }
-
-  // Simple permission check: UI shows invite form only if current user appears to be owner/admin.
-  // For full accuracy, server-side checks are enforced in rules and helpers.
-  const canInvite = async () => {
-    if (!user || !currentWorkspace) return false
-    try {
-      // try to fetch invites; helper will throw if not authorized
-      await getWorkspaceInvites(user.uid, currentWorkspace.id)
-      return true
-    } catch (err) {
-      return false
-    }
-  }
-
-  const [allowed, setAllowed] = useState<boolean | null>(null)
-  useEffect(() => {
-    let mounted = true
-    if (!currentWorkspace || !user) {
-      setAllowed(false)
-      return
-    }
-    setAllowed(null)
-    canInvite().then((v) => mounted && setAllowed(v))
-    return () => {
-      mounted = false
-    }
-  }, [currentWorkspace, user])
 
   return (
     <Card className="space-y-4">
@@ -121,9 +125,13 @@ export function WorkspaceInvitePanel() {
             )}
           </div>
 
-          {allowed === null ? (
+          {isManager === null ? (
             <div className="text-sm text-muted-foreground">Checking permissions…</div>
-          ) : allowed === false ? null : (
+          ) : isManager === false ? (
+            <div className="rounded-2xl border border-border bg-muted/5 p-4 text-sm text-muted-foreground">
+              You do not have permission to manage workspace invites. Only workspace owners and admins may manage invites.
+            </div>
+          ) : (
             <form onSubmit={handleInvite} className="space-y-3">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Invite by email</label>
