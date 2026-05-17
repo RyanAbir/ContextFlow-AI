@@ -99,6 +99,40 @@ export async function getWorkspaceInvites(userId: string, workspaceId: string): 
   })
 }
 
+export async function getPendingInvitesForEmail(userEmail: string): Promise<WorkspaceInvite[]> {
+  const database = ensureDb()
+
+  const invitesRef = collection(database, "workspaceInvites")
+  const q = query(
+    invitesRef,
+    where("invitedEmail", "==", userEmail.toLowerCase()),
+    where("status", "==", "pending"),
+    orderBy("createdAt", "desc"),
+    limit(200)
+  )
+  const snap = await getDocs(q)
+
+  return snap.docs.map((d) => {
+    const data = d.data() as Record<string, unknown>
+    const createdField = data.createdAt as { toDate?: () => Date } | undefined
+    const expiresField = data.expiresAt as { toDate?: () => Date } | undefined
+    const created = createdField && typeof createdField.toDate === "function" ? createdField.toDate() : new Date()
+    const expires = expiresField && typeof expiresField.toDate === "function" ? expiresField.toDate() : (data.expiresAt as Date | null)
+
+    return {
+      id: d.id,
+      workspaceId: (data.workspaceId as string) ?? "",
+      workspaceName: (data.workspaceName as string) ?? "",
+      invitedEmail: (data.invitedEmail as string) ?? "",
+      invitedBy: (data.invitedBy as string) ?? "",
+      role: (data.role as WorkspaceRole) ?? ("member" as WorkspaceRole),
+      status: (data.status as WorkspaceInviteStatus) ?? ("pending" as WorkspaceInviteStatus),
+      createdAt: created,
+      expiresAt: expires ?? null,
+    }
+  })
+}
+
 export async function acceptWorkspaceInvite(inviteId: string, userId: string, userEmail: string): Promise<void> {
   const database = ensureDb()
   const inviteRef = doc(database, "workspaceInvites", inviteId)
