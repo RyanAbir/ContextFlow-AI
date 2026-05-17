@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "ContextFlow AI",
-  description: "A minimalist SaaS dashboard foundation for ContextFlow AI.",
+  description: "AI-powered work management with intelligent context, collaboration, and workflow automation.",
 }
 
 export default function RootLayout({
