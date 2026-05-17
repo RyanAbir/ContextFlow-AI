@@ -1,0 +1,62 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "projects",
+      "queryScope": "Collection",
+      "fields": [
+        {"fieldPath": "userId", "order": "Ascending"},
+        {"fieldPath": "createdAt", "order": "Descending"}
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "Collection",
+      "fields": [
+        {"fieldPath": "projectId", "order": "Ascending"},
+        {"fieldPath": "status", "order": "Ascending"}
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "Collection",
+      "fields": [
+        {"fieldPath": "projectId", "order": "Ascending"},
+        {"fieldPath": "priority", "order": "Ascending"}
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "Collection",
+      "fields": [
+        {"fieldPath": "projectId", "order": "Ascending"},
+        {"fieldPath": "createdAt", "order": "Descending"}
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "Collection",
+      "fields": [
+        {"fieldPath": "projectId", "order": "Ascending"},
+        {"fieldPath": "status", "order": "Ascending"},
+        {"fieldPath": "createdAt", "order": "Descending"}
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "Collection",
+      "fields": [
+        {"fieldPath": "projectId", "order": "Ascending"},
+        {"fieldPath": "priority", "order": "Ascending"},
+        {"fieldPath": "createdAt", "order": "Descending"}
+      ]
+    },
+    {
+      "collectionGroup": "contextNotes",
+      "queryScope": "Collection",
+      "fields": [
+        {"fieldPath": "projectId", "order": "Ascending"},
+        {"fieldPath": "createdAt", "order": "Descending"}
+      ]
+    }
+  ]
+}
