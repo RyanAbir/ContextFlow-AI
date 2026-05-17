@@ -26,29 +26,38 @@ function ensureDb() {
   return db
 }
 
+function logFirestoreError(helper: string, queryShape: string, error: unknown) {
+  console.error(`[Firestore:${helper}] ${queryShape}`, error)
+}
+
 export async function createWorkspace(userId: string, data: { name: string; description?: string }): Promise<string> {
   const database = ensureDb()
   const workspacesRef = collection(database, "workspaces")
 
-  const docRef = await addDoc(workspacesRef, {
-    name: data.name,
-    description: data.description ?? "",
-    ownerId: userId,
-    memberCount: 1,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  })
+  try {
+    const docRef = await addDoc(workspacesRef, {
+      name: data.name,
+      description: data.description ?? "",
+      ownerId: userId,
+      memberCount: 1,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
 
-  // create initial member document under workspace members subcollection using userId as the doc id
-  const memberRef = doc(database, "workspaces", docRef.id, "members", userId)
-  await setDoc(memberRef, {
-    userId,
-    workspaceId: docRef.id,
-    role: "owner" as WorkspaceRole,
-    joinedAt: serverTimestamp(),
-  })
+    // create initial member document under workspace members subcollection using userId as the doc id
+    const memberRef = doc(database, "workspaces", docRef.id, "members", userId)
+    await setDoc(memberRef, {
+      userId,
+      workspaceId: docRef.id,
+      role: "owner" as WorkspaceRole,
+      joinedAt: serverTimestamp(),
+    })
 
-  return docRef.id
+    return docRef.id
+  } catch (error) {
+    logFirestoreError("createWorkspace", "write workspaces + workspaces/{workspaceId}/members/{userId}", error)
+    throw error
+  }
 }
 
 function mapWorkspace(id: string, data: Record<string, unknown>): Workspace {
@@ -93,7 +102,13 @@ export async function getUserWorkspaceMemberships(userId: string): Promise<Works
   const database = ensureDb()
   const membersRef = collectionGroup(database, "members")
   const q = query(membersRef, where("userId", "==", userId), limit(100))
-  const snap = await getDocs(q)
+  let snap
+  try {
+    snap = await getDocs(q)
+  } catch (error) {
+    logFirestoreError("getUserWorkspaceMemberships", "members collectionGroup where userId == currentUser limit 100", error)
+    throw error
+  }
 
   return snap.docs.map((d) => mapWorkspaceMember(d.data() as Record<string, unknown>))
 }
@@ -101,7 +116,13 @@ export async function getUserWorkspaceMemberships(userId: string): Promise<Works
 async function getWorkspacesForMemberships(memberships: WorkspaceMember[]): Promise<Workspace[]> {
   const database = ensureDb()
   const workspaceIds = Array.from(new Set(memberships.map((member) => member.workspaceId).filter(Boolean)))
-  const snapshots = await Promise.all(workspaceIds.map((workspaceId) => getDoc(doc(database, "workspaces", workspaceId))))
+  let snapshots
+  try {
+    snapshots = await Promise.all(workspaceIds.map((workspaceId) => getDoc(doc(database, "workspaces", workspaceId))))
+  } catch (error) {
+    logFirestoreError("getWorkspacesForMemberships", "get workspaces/{workspaceId} for matching member docs", error)
+    throw error
+  }
 
   return snapshots
     .filter((snapshot) => snapshot.exists())
@@ -131,6 +152,7 @@ export function subscribeToUserWorkspaces(
 
   const handleError = (error: Error) => {
     if (disposed) return
+    logFirestoreError("subscribeToUserWorkspaces", "workspace subscription failed", error)
     onError?.(error)
   }
 
@@ -141,7 +163,10 @@ export function subscribeToUserWorkspaces(
       ownedLoaded = true
       emitIfReady()
     },
-    handleError
+    (error) => {
+      logFirestoreError("subscribeToUserWorkspaces", "workspaces where ownerId == currentUser orderBy createdAt desc limit 100", error)
+      handleError(error)
+    }
   )
 
   const unsubscribeMemberships = onSnapshot(
@@ -156,7 +181,10 @@ export function subscribeToUserWorkspaces(
         })
         .catch(handleError)
     },
-    handleError
+    (error) => {
+      logFirestoreError("subscribeToUserWorkspaces", "members collectionGroup where userId == currentUser limit 100", error)
+      handleError(error)
+    }
   )
 
   return () => {
@@ -170,7 +198,13 @@ export async function listUserWorkspaces(userId: string): Promise<Workspace[]> {
   const database = ensureDb()
   const workspacesRef = collection(database, "workspaces")
   const q = query(workspacesRef, where("ownerId", "==", userId), orderBy("createdAt", "desc"), limit(100))
-  const snap = await getDocs(q)
+  let snap
+  try {
+    snap = await getDocs(q)
+  } catch (error) {
+    logFirestoreError("listUserWorkspaces", "workspaces where ownerId == currentUser orderBy createdAt desc limit 100", error)
+    throw error
+  }
   const owned = snap.docs.map((d) => mapWorkspace(d.id, d.data() as Record<string, unknown>))
   const memberWorkspaces = await getWorkspacesForMemberships(await getUserWorkspaceMemberships(userId))
   return mergeWorkspaces(owned, memberWorkspaces)
@@ -179,7 +213,13 @@ export async function listUserWorkspaces(userId: string): Promise<Workspace[]> {
 export async function updateWorkspace(userId: string, workspaceId: string, updates: Partial<{ name: string; description: string }>): Promise<void> {
   const database = ensureDb()
   const ref = doc(database, "workspaces", workspaceId)
-  const snap = await getDoc(ref)
+  let snap
+  try {
+    snap = await getDoc(ref)
+  } catch (error) {
+    logFirestoreError("updateWorkspace", "get workspaces/{workspaceId}", error)
+    throw error
+  }
   if (!snap.exists()) throw new Error("Workspace not found")
   const data = snap.data() as Record<string, unknown>
   if ((data.ownerId as string) !== userId) throw new Error("Not authorized to update this workspace")
@@ -189,25 +229,47 @@ export async function updateWorkspace(userId: string, workspaceId: string, updat
   if (typeof updates.description === "string") allowed["description"] = updates.description
   allowed["updatedAt"] = serverTimestamp()
 
-  await updateDoc(ref, allowed)
+  try {
+    await updateDoc(ref, allowed)
+  } catch (error) {
+    logFirestoreError("updateWorkspace", "update workspaces/{workspaceId}", error)
+    throw error
+  }
 }
 
 export async function deleteWorkspace(userId: string, workspaceId: string): Promise<void> {
   const database = ensureDb()
   const ref = doc(database, "workspaces", workspaceId)
-  const snap = await getDoc(ref)
+  let snap
+  try {
+    snap = await getDoc(ref)
+  } catch (error) {
+    logFirestoreError("deleteWorkspace", "get workspaces/{workspaceId}", error)
+    throw error
+  }
   if (!snap.exists()) throw new Error("Workspace not found")
   const data = snap.data() as Record<string, unknown>
   if ((data.ownerId as string) !== userId) throw new Error("Not authorized to delete this workspace")
 
   // Note: Deleting the workspace document does not remove subcollections. For production, consider a Cloud Function to cascade deletions.
-  await deleteDoc(ref)
+  try {
+    await deleteDoc(ref)
+  } catch (error) {
+    logFirestoreError("deleteWorkspace", "delete workspaces/{workspaceId}", error)
+    throw error
+  }
 }
 
 export async function getWorkspaceById(workspaceId: string): Promise<Workspace | null> {
   const database = ensureDb()
   const ref = doc(database, "workspaces", workspaceId)
-  const snap = await getDoc(ref)
+  let snap
+  try {
+    snap = await getDoc(ref)
+  } catch (error) {
+    logFirestoreError("getWorkspaceById", "get workspaces/{workspaceId}", error)
+    throw error
+  }
   if (!snap.exists()) return null
   const data = snap.data() as Record<string, unknown>
   return mapWorkspace(snap.id, data)

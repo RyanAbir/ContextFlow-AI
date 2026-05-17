@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardShell } from "@/components/layout/dashboard-shell"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import type { WorkspaceInvite } from "@/types/workspace-invite"
 export default function InvitesPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
+  const userEmail = user?.email ?? null
   const [invites, setInvites] = useState<WorkspaceInvite[] | null>(null)
   const [loadingInvites, setLoadingInvites] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -23,25 +24,27 @@ export default function InvitesPage() {
     }
   }, [loading, router, user])
 
-  const loadInvites = async () => {
-    if (!user?.email) return
+  const loadInvites = useCallback(async () => {
+    if (!userEmail) return
     setLoadingInvites(true)
     setError(null)
 
     try {
-      const list = await getPendingInvitesForEmail(user.email)
+      const list = await getPendingInvitesForEmail(userEmail)
       setInvites(list)
     } catch (err) {
-      console.error(err)
+      console.error("[InvitesPage] getPendingInvitesForEmail failed", err)
       setError((err as Error).message ?? "Unable to load invites")
     } finally {
       setLoadingInvites(false)
     }
-  }
+  }, [userEmail])
 
   useEffect(() => {
-    void loadInvites()
-  }, [user?.email])
+    queueMicrotask(() => {
+      void loadInvites()
+    })
+  }, [loadInvites])
 
   const handleAccept = async (inviteId: string) => {
     if (!user?.email || !user.uid) return
@@ -51,7 +54,7 @@ export default function InvitesPage() {
       await acceptWorkspaceInvite(inviteId, user.uid, user.email)
       await loadInvites()
     } catch (err) {
-      console.error(err)
+      console.error("[InvitesPage] acceptWorkspaceInvite failed", err)
       setError((err as Error).message ?? "Unable to accept invite")
     } finally {
       setActionLoading(null)
@@ -66,7 +69,7 @@ export default function InvitesPage() {
       await declineWorkspaceInvite(inviteId, user.uid, user.email)
       await loadInvites()
     } catch (err) {
-      console.error(err)
+      console.error("[InvitesPage] declineWorkspaceInvite failed", err)
       setError((err as Error).message ?? "Unable to decline invite")
     } finally {
       setActionLoading(null)

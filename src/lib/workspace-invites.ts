@@ -25,6 +25,10 @@ function ensureDb() {
   return db
 }
 
+function logFirestoreError(helper: string, queryShape: string, error: unknown) {
+  console.error(`[Firestore:${helper}] ${queryShape}`, error)
+}
+
 async function isWorkspaceOwnerOrAdmin(userId: string, workspaceId: string): Promise<boolean> {
   const database = ensureDb()
   const ws = await getWorkspaceById(workspaceId)
@@ -32,7 +36,13 @@ async function isWorkspaceOwnerOrAdmin(userId: string, workspaceId: string): Pro
   if (ws.ownerId === userId) return true
 
   const memberRef = doc(database, "workspaces", workspaceId, "members", userId)
-  const snap = await getDoc(memberRef)
+  let snap
+  try {
+    snap = await getDoc(memberRef)
+  } catch (error) {
+    logFirestoreError("isWorkspaceOwnerOrAdmin", "get workspaces/{workspaceId}/members/{userId}", error)
+    throw error
+  }
   if (!snap.exists()) return false
   const data = snap.data() as Record<string, unknown>
   const role = data.role as WorkspaceRole | undefined
@@ -90,16 +100,22 @@ export async function createWorkspaceInvite(
   if (!ws) throw new Error("Workspace not found")
 
   const invitesRef = collection(database, "workspaceInvites")
-  const docRef = await addDoc(invitesRef, {
-    workspaceId,
-    workspaceName: ws.name,
-    invitedEmail: invitedEmail.toLowerCase(),
-    invitedBy: inviterId,
-    role,
-    status: "pending",
-    createdAt: serverTimestamp(),
-    expiresAt: expiresAt ?? null,
-  })
+  let docRef
+  try {
+    docRef = await addDoc(invitesRef, {
+      workspaceId,
+      workspaceName: ws.name,
+      invitedEmail: invitedEmail.toLowerCase(),
+      invitedBy: inviterId,
+      role,
+      status: "pending",
+      createdAt: serverTimestamp(),
+      expiresAt: expiresAt ?? null,
+    })
+  } catch (error) {
+    logFirestoreError("createWorkspaceInvite", "add workspaceInvites document", error)
+    throw error
+  }
 
   return docRef.id
 }
@@ -111,7 +127,17 @@ export async function getWorkspaceInvites(userId: string, workspaceId: string): 
   if (!allowed) throw new Error("Not authorized to view invites for this workspace")
 
   const q = workspaceInvitesQuery(database, workspaceId)
-  const snap = await getDocs(q)
+  let snap
+  try {
+    snap = await getDocs(q)
+  } catch (error) {
+    logFirestoreError(
+      "getWorkspaceInvites",
+      'workspaceInvites where workspaceId == workspaceId and status == "pending" orderBy createdAt desc limit 200',
+      error
+    )
+    throw error
+  }
   return snap.docs.map((d) => mapWorkspaceInvite(d.id, d.data() as Record<string, unknown>))
 }
 
@@ -132,6 +158,11 @@ export async function subscribeToWorkspaceInvites(
       onChange(snapshot.docs.map((d) => mapWorkspaceInvite(d.id, d.data() as Record<string, unknown>)))
     },
     (error) => {
+      logFirestoreError(
+        "subscribeToWorkspaceInvites",
+        'workspaceInvites where workspaceId == workspaceId and status == "pending" orderBy createdAt desc limit 200',
+        error
+      )
       onError?.(error)
     }
   )
@@ -148,7 +179,17 @@ export async function getPendingInvitesForEmail(userEmail: string): Promise<Work
     orderBy("createdAt", "desc"),
     limit(200)
   )
-  const snap = await getDocs(q)
+  let snap
+  try {
+    snap = await getDocs(q)
+  } catch (error) {
+    logFirestoreError(
+      "getPendingInvitesForEmail",
+      'workspaceInvites where invitedEmail == currentUser.email and status == "pending" orderBy createdAt desc limit 200',
+      error
+    )
+    throw error
+  }
 
   return snap.docs.map((d) => mapWorkspaceInvite(d.id, d.data() as Record<string, unknown>))
 }
@@ -156,7 +197,13 @@ export async function getPendingInvitesForEmail(userEmail: string): Promise<Work
 export async function acceptWorkspaceInvite(inviteId: string, userId: string, userEmail: string): Promise<void> {
   const database = ensureDb()
   const inviteRef = doc(database, "workspaceInvites", inviteId)
-  const snap = await getDoc(inviteRef)
+  let snap
+  try {
+    snap = await getDoc(inviteRef)
+  } catch (error) {
+    logFirestoreError("acceptWorkspaceInvite", "get workspaceInvites/{inviteId}", error)
+    throw error
+  }
   if (!snap.exists()) throw new Error("Invite not found")
   const data = snap.data() as Record<string, unknown>
   const status = (data.status as WorkspaceInviteStatus) ?? ("pending" as WorkspaceInviteStatus)
@@ -168,19 +215,24 @@ export async function acceptWorkspaceInvite(inviteId: string, userId: string, us
   const expiresField = data.expiresAt as { toDate?: () => Date } | undefined
   const expires = expiresField && typeof expiresField.toDate === "function" ? expiresField.toDate() : (data.expiresAt as Date | null)
   if (expires && expires.getTime() < Date.now()) {
-    await updateDoc(inviteRef, { status: "expired" })
     throw new Error("Invite has expired")
   }
 
   const workspaceId = (data.workspaceId as string) ?? ""
   // create member doc
   const memberRef = doc(database, "workspaces", workspaceId, "members", userId)
-  await setDoc(memberRef, {
-    userId,
-    workspaceId,
-    role: data.role ?? "member",
-    joinedAt: serverTimestamp(),
-  })
+  try {
+    await setDoc(memberRef, {
+      userId,
+      workspaceId,
+      inviteId,
+      role: data.role ?? "member",
+      joinedAt: serverTimestamp(),
+    })
+  } catch (error) {
+    logFirestoreError("acceptWorkspaceInvite", "create workspaces/{workspaceId}/members/{userId} from pending invite", error)
+    throw error
+  }
 
   // increment member count on workspace
   const workspaceRef = doc(database, "workspaces", workspaceId)
@@ -192,13 +244,24 @@ export async function acceptWorkspaceInvite(inviteId: string, userId: string, us
   }
 
   // update invite status
-  await updateDoc(inviteRef, { status: "accepted", acceptedAt: serverTimestamp(), acceptedBy: userId })
+  try {
+    await updateDoc(inviteRef, { status: "accepted", acceptedAt: serverTimestamp(), acceptedBy: userId })
+  } catch (error) {
+    logFirestoreError("acceptWorkspaceInvite", "update workspaceInvites/{inviteId} status accepted", error)
+    throw error
+  }
 }
 
 export async function declineWorkspaceInvite(inviteId: string, userId: string, userEmail: string): Promise<void> {
   const database = ensureDb()
   const inviteRef = doc(database, "workspaceInvites", inviteId)
-  const snap = await getDoc(inviteRef)
+  let snap
+  try {
+    snap = await getDoc(inviteRef)
+  } catch (error) {
+    logFirestoreError("declineWorkspaceInvite", "get workspaceInvites/{inviteId}", error)
+    throw error
+  }
   if (!snap.exists()) throw new Error("Invite not found")
   const data = snap.data() as Record<string, unknown>
   const status = (data.status as WorkspaceInviteStatus) ?? ("pending" as WorkspaceInviteStatus)
@@ -207,5 +270,10 @@ export async function declineWorkspaceInvite(inviteId: string, userId: string, u
   const invitedEmail = (data.invitedEmail as string) ?? ""
   if (invitedEmail.toLowerCase() !== userEmail.toLowerCase()) throw new Error("Invite not addressed to this user")
 
-  await updateDoc(inviteRef, { status: "declined", declinedAt: serverTimestamp(), declinedBy: userId })
+  try {
+    await updateDoc(inviteRef, { status: "declined", declinedAt: serverTimestamp(), declinedBy: userId })
+  } catch (error) {
+    logFirestoreError("declineWorkspaceInvite", "update workspaceInvites/{inviteId} status declined", error)
+    throw error
+  }
 }

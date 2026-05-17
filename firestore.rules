@@ -11,14 +11,14 @@ service cloud.firestore {
     }
 
     function isWorkspaceMemberDoc(workspaceId) {
-      return isSignedIn() && get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).exists();
+      return isSignedIn() && exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
     }
 
     function isWorkspaceAdmin(workspaceId) {
       return isWorkspaceOwner(workspaceId)
         || (
           isSignedIn()
-          && get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).exists()
+          && exists(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid))
           && get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role == 'admin'
         );
     }
@@ -38,6 +38,15 @@ service cloud.firestore {
     function isInviteRecipient() {
       return request.auth.token.email != null
         && resource.data.invitedEmail == request.auth.token.email;
+    }
+
+    function isPendingInviteForRequest(inviteId, workspaceId) {
+      return request.auth.token.email != null
+        && exists(/databases/$(database)/documents/workspaceInvites/$(inviteId))
+        && get(/databases/$(database)/documents/workspaceInvites/$(inviteId)).data.workspaceId == workspaceId
+        && get(/databases/$(database)/documents/workspaceInvites/$(inviteId)).data.invitedEmail == request.auth.token.email
+        && get(/databases/$(database)/documents/workspaceInvites/$(inviteId)).data.role == request.resource.data.role
+        && get(/databases/$(database)/documents/workspaceInvites/$(inviteId)).data.status == 'pending';
     }
 
     // Default: Deny all access
@@ -78,9 +87,20 @@ service cloud.firestore {
 
         // Allow a user to create their own owner member doc when creating their workspace
         allow create: if isSignedIn() && request.auth.uid == memberId
+          && request.resource.data.keys().hasOnly(['userId', 'workspaceId', 'role', 'joinedAt'])
           && request.resource.data.workspaceId == workspaceId
           && request.resource.data.userId == request.auth.uid
           && request.resource.data.role == 'owner';
+
+        // Allow an invited user to create only their own member doc from a pending invite
+        allow create: if isSignedIn()
+          && request.auth.uid == memberId
+          && request.resource.data.keys().hasOnly(['userId', 'workspaceId', 'role', 'joinedAt', 'inviteId'])
+          && request.resource.data.workspaceId == workspaceId
+          && request.resource.data.userId == request.auth.uid
+          && (request.resource.data.role == 'admin' || request.resource.data.role == 'member')
+          && request.resource.data.inviteId is string
+          && isPendingInviteForRequest(request.resource.data.inviteId, workspaceId);
       }
     }
 
@@ -150,6 +170,7 @@ service cloud.firestore {
         (
           request.auth.token.email != null
           && resource.data.invitedEmail == request.auth.token.email
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt', 'acceptedBy', 'declinedAt', 'declinedBy'])
           && request.resource.data.workspaceId == resource.data.workspaceId
           && request.resource.data.workspaceName == resource.data.workspaceName
           && request.resource.data.invitedEmail == resource.data.invitedEmail
@@ -157,7 +178,20 @@ service cloud.firestore {
           && request.resource.data.role == resource.data.role
           && request.resource.data.createdAt == resource.data.createdAt
           && request.resource.data.expiresAt == resource.data.expiresAt
-          && (request.resource.data.status == 'accepted' || request.resource.data.status == 'declined')
+          && (
+            (
+              request.resource.data.status == 'accepted'
+              && request.resource.data.acceptedBy == request.auth.uid
+              && !('declinedBy' in request.resource.data)
+              && !('declinedAt' in request.resource.data)
+            )
+            || (
+              request.resource.data.status == 'declined'
+              && request.resource.data.declinedBy == request.auth.uid
+              && !('acceptedBy' in request.resource.data)
+              && !('acceptedAt' in request.resource.data)
+            )
+          )
         )
         // owner/admin may update any field on the invite
         || isInviteWorkspaceAdmin()

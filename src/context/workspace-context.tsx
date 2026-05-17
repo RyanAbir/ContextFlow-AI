@@ -76,7 +76,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       },
       (err) => {
         if (cancelled) return
-        console.error("Failed to load workspaces", err)
+        console.error("[WorkspaceProvider] subscribeToUserWorkspaces failed", err)
         setWorkspaces([])
         setCurrentWorkspace(null)
         setError(err.message || "Failed to load workspaces")

@@ -51,7 +51,7 @@ export function WorkspaceInvitePanel() {
             setLoading(false)
           },
           (err) => {
-            console.error(err)
+            console.error("[WorkspaceInvitePanel] subscribeToWorkspaceInvites failed", err)
             if (!mounted) return
             setError(err.message || "Failed to load invites")
             setLoading(false)
@@ -62,7 +62,7 @@ export function WorkspaceInvitePanel() {
           return
         }
       } catch (err) {
-        console.error(err)
+        console.error("[WorkspaceInvitePanel] loading invite permissions/listener failed", err)
         if (!mounted) return
         setError((err as Error).message ?? "Failed to load invites")
       } finally {
@@ -86,7 +86,7 @@ export function WorkspaceInvitePanel() {
       setEmail("")
       setRole("member")
     } catch (err) {
-      console.error(err)
+      console.error("[WorkspaceInvitePanel] createWorkspaceInvite failed", err)
       setError((err as Error).message ?? "Failed to create invite")
     } finally {
       setLoading(false)
