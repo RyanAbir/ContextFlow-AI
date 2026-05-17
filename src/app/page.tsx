@@ -8,6 +8,7 @@ import {
   Users,
   Zap,
 } from "lucide-react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { SectionTitle } from "@/components/ui/section-title"
@@ -82,9 +83,25 @@ const benefits = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-background px-4 py-10 text-foreground sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-background px-4 pb-10 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-16 xl:grid-cols-[1.2fr_0.8fr] xl:items-center">
+        <header className="sticky top-0 z-30 -mx-4 border-b border-border/70 bg-background/90 px-4 py-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+          <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+            <Link href="/" className="text-base font-semibold tracking-tight text-foreground sm:text-lg">
+              ContextFlow AI
+            </Link>
+            <div className="flex items-center gap-2">
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href="/login">Get Started</Link>
+              </Button>
+            </div>
+          </nav>
+        </header>
+
+        <div className="grid gap-12 pt-10 sm:pt-14 xl:grid-cols-[1.2fr_0.8fr] xl:items-center">
           <div className="space-y-8">
             <div className="space-y-4 max-w-2xl">
               <p className="text-sm uppercase tracking-[0.35em] text-muted-foreground">
@@ -99,9 +116,11 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col gap-4 sm:flex-row">
-              <Button size="lg">Start free trial</Button>
-              <Button variant="outline" size="lg">
-                View demo
+              <Button asChild size="lg">
+                <Link href="/login">Start free trial</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/dashboard">View demo</Link>
               </Button>
             </div>
 
@@ -245,9 +264,11 @@ export default function Home() {
             Start with a powerful landing experience and grow into a full ContextFlow AI workspace.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button size="lg">Start free trial</Button>
-            <Button variant="outline" size="lg">
-              Contact sales
+            <Button asChild size="lg">
+              <Link href="/login">Start free trial</Link>
+            </Button>
+            <Button asChild variant="outline" size="lg">
+              <Link href="/login">Contact sales</Link>
             </Button>
           </div>
         </section>
