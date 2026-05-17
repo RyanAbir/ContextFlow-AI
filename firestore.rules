@@ -10,7 +10,7 @@ service cloud.firestore {
       return isSignedIn() && get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
     }
 
-    function isWorkspaceMember(workspaceId) {
+    function isWorkspaceMemberDoc(workspaceId) {
       return isSignedIn() && get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).exists();
     }
 
@@ -24,7 +24,7 @@ service cloud.firestore {
     }
 
     function canReadWorkspace(workspaceId) {
-      return isWorkspaceOwner(workspaceId) || isWorkspaceMember(workspaceId);
+      return isWorkspaceOwner(workspaceId) || isWorkspaceMemberDoc(workspaceId);
     }
 
     function canManageWorkspace(workspaceId) {
@@ -47,7 +47,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
 
       // Read by owner or any workspace member
-      allow read: if isWorkspaceOwner(workspaceId) || isWorkspaceMember(workspaceId);
+      allow read: if isWorkspaceOwner(workspaceId) || isWorkspaceMemberDoc(workspaceId);
 
       // Only owner may update or delete the workspace
       allow update: if isWorkspaceOwner(workspaceId);
@@ -79,7 +79,7 @@ service cloud.firestore {
         || (
           request.resource.data.workspaceId != null
           && request.resource.data.createdBy == request.auth.uid
-          && isWorkspaceMember(request.resource.data.workspaceId)
+          && isWorkspaceMemberDoc(request.resource.data.workspaceId)
         )
       );
 
