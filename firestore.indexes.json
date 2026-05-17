@@ -4,58 +4,58 @@
       "collectionGroup": "projects",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "userId", "order": "Ascending"},
-        {"fieldPath": "createdAt", "order": "Descending"}
+        {"fieldPath": "userId", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
       ]
     },
     {
       "collectionGroup": "tasks",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "projectId", "order": "Ascending"},
-        {"fieldPath": "status", "order": "Ascending"}
+        {"fieldPath": "projectId", "order": "ASCENDING"},
+        {"fieldPath": "status", "order": "ASCENDING"}
       ]
     },
     {
       "collectionGroup": "tasks",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "projectId", "order": "Ascending"},
-        {"fieldPath": "priority", "order": "Ascending"}
+        {"fieldPath": "projectId", "order": "ASCENDING"},
+        {"fieldPath": "priority", "order": "ASCENDING"}
       ]
     },
     {
       "collectionGroup": "tasks",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "projectId", "order": "Ascending"},
-        {"fieldPath": "createdAt", "order": "Descending"}
+        {"fieldPath": "projectId", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
       ]
     },
     {
       "collectionGroup": "tasks",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "projectId", "order": "Ascending"},
-        {"fieldPath": "status", "order": "Ascending"},
-        {"fieldPath": "createdAt", "order": "Descending"}
+        {"fieldPath": "projectId", "order": "ASCENDING"},
+        {"fieldPath": "status", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
       ]
     },
     {
       "collectionGroup": "tasks",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "projectId", "order": "Ascending"},
-        {"fieldPath": "priority", "order": "Ascending"},
-        {"fieldPath": "createdAt", "order": "Descending"}
+        {"fieldPath": "projectId", "order": "ASCENDING"},
+        {"fieldPath": "priority", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
       ]
     },
     {
       "collectionGroup": "contextNotes",
       "queryScope": "COLLECTION",
       "fields": [
-        {"fieldPath": "projectId", "order": "Ascending"},
-        {"fieldPath": "createdAt", "order": "Descending"}
+        {"fieldPath": "projectId", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
       ]
     }
   ]
