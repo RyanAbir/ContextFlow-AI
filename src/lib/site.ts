@@ -1,8 +1,8 @@
 import {
   LayoutDashboard,
   Sparkles,
-  Users,
-  Wallet,
+  Folder,
+  CheckSquare,
   Settings2,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
@@ -14,10 +14,10 @@ export type NavItem = {
 }
 
 export const sidebarNav: NavItem[] = [
-  { title: "Overview", href: "#overview", icon: LayoutDashboard },
-  { title: "Performance", href: "#performance", icon: Sparkles },
-  { title: "Customers", href: "#customers", icon: Users },
-  { title: "Revenue", href: "#revenue", icon: Wallet },
+  { title: "Dashboard", href: "#dashboard", icon: LayoutDashboard },
+  { title: "Projects", href: "#projects", icon: Folder },
+  { title: "Tasks", href: "#tasks", icon: CheckSquare },
+  { title: "AI Insights", href: "#insights", icon: Sparkles },
   { title: "Settings", href: "#settings", icon: Settings2 },
 ]
 
