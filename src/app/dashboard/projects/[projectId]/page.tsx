@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { ContextNoteCard } from "@/components/context-notes/ContextNoteCard"
+import { ContextNoteForm } from "@/components/context-notes/ContextNoteForm"
 import { DashboardShell } from "@/components/layout/dashboard-shell"
 import { EditProjectForm } from "@/components/projects/EditProjectForm"
 import { TaskCard } from "@/components/tasks/TaskCard"
@@ -9,8 +11,10 @@ import { TaskForm } from "@/components/tasks/TaskForm"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useAuth } from "@/context/auth-context"
+import { subscribeToProjectNotes } from "@/lib/context-notes"
 import { getProjectById } from "@/lib/projects"
 import { subscribeToProjectTasks } from "@/lib/tasks"
+import type { ContextNote } from "@/types/context-note"
 import type { Project } from "@/types/project"
 import type { Task } from "@/types/task"
 
@@ -23,13 +27,21 @@ type TasksResult = {
   tasks: Task[]
 }
 
+type NotesResult = {
+  projectId: string
+  notes: ContextNote[]
+}
+
 export default function ProjectDetailPage() {
   const { projectId } = useParams() as { projectId: string }
   const router = useRouter()
   const { user, loading } = useAuth()
   const [projectResult, setProjectResult] = useState<ProjectResult | null>(null)
   const [editing, setEditing] = useState(false)
+  const [notesResult, setNotesResult] = useState<NotesResult | null>(null)
   const [tasksResult, setTasksResult] = useState<TasksResult | null>(null)
+  const [showCreateNote, setShowCreateNote] = useState(false)
+  const [editingNote, setEditingNote] = useState<ContextNote | null>(null)
   const [showCreateTask, setShowCreateTask] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
 
@@ -75,6 +87,16 @@ export default function ProjectDetailPage() {
     const scopedProjectId = projectResult.project.id
     const unsub = subscribeToProjectTasks(scopedProjectId, user.uid, (list) => {
       setTasksResult({ projectId: scopedProjectId, tasks: list })
+    })
+    return () => unsub()
+  }, [projectResult, user])
+
+  useEffect(() => {
+    if (!user || projectResult?.status !== "ready" || projectResult.project.userId !== user.uid) return
+
+    const scopedProjectId = projectResult.project.id
+    const unsub = subscribeToProjectNotes(scopedProjectId, user.uid, (list) => {
+      setNotesResult({ projectId: scopedProjectId, notes: list })
     })
     return () => unsub()
   }, [projectResult, user])
@@ -144,6 +166,7 @@ export default function ProjectDetailPage() {
   }
 
   const project = projectResult.project
+  const notes = notesResult?.projectId === project.id ? notesResult.notes : null
   const tasks = tasksResult?.projectId === project.id ? tasksResult.tasks : null
 
   return (
@@ -171,6 +194,35 @@ export default function ProjectDetailPage() {
             </span>
           </div>
         </Card>
+
+        <section className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Context</p>
+              <h2 className="mt-2 text-2xl font-semibold text-foreground">Context notes</h2>
+            </div>
+            <Button onClick={() => setShowCreateNote(true)}>New note</Button>
+          </div>
+
+          {notes === null ? (
+            <div className="rounded-2xl border border-border bg-card/95 p-6 text-sm text-muted-foreground">
+              Loading context notes...
+            </div>
+          ) : notes.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-card/95 p-8 text-center">
+              <p className="text-lg font-semibold text-foreground">No context notes yet</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Store requirements, decisions, ideas, and meeting notes for this project.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {notes.map((note) => (
+                <ContextNoteCard key={note.id} note={note} onEdit={setEditingNote} />
+              ))}
+            </div>
+          )}
+        </section>
 
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -207,6 +259,29 @@ export default function ProjectDetailPage() {
                 project={project}
                 onSaved={(updated) => setProjectResult({ projectId: updated.id, status: "ready", project: updated })}
                 onClose={() => setEditing(false)}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {showCreateNote ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setShowCreateNote(false)} />
+            <div className="relative w-full max-w-2xl p-6">
+              <ContextNoteForm projectId={project.id} userId={user.uid} onClose={() => setShowCreateNote(false)} />
+            </div>
+          </div>
+        ) : null}
+
+        {editingNote ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setEditingNote(null)} />
+            <div className="relative w-full max-w-2xl p-6">
+              <ContextNoteForm
+                projectId={project.id}
+                userId={user.uid}
+                note={editingNote}
+                onClose={() => setEditingNote(null)}
               />
             </div>
           </div>
