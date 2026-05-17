@@ -15,10 +15,12 @@ service cloud.firestore {
     }
 
     function isWorkspaceAdmin(workspaceId) {
-      if (!isSignedIn()) { return false; }
-      if (isWorkspaceOwner(workspaceId)) { return true; }
-      let member = get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid));
-      return member.exists() && member.data.role == 'admin';
+      return isWorkspaceOwner(workspaceId)
+        || (
+          isSignedIn()
+          && get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).exists()
+          && get(/databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid)).data.role == 'admin'
+        );
     }
 
     function canReadWorkspace(workspaceId) {
