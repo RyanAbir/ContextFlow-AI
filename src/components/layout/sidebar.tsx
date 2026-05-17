@@ -1,10 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { X } from "lucide-react"
+import { LogOut, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { sidebarNav } from "@/lib/site"
+import { useAuth } from "@/context/auth-context"
 
 interface SidebarProps {
   open: boolean
@@ -12,6 +13,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, onClose }: SidebarProps) {
+  const { user, logout } = useAuth()
+
   return (
     <>
       <div
@@ -58,11 +61,25 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           ))}
         </nav>
 
-        <div className="mt-auto rounded-3xl border border-border bg-card p-5">
-          <p className="text-sm font-semibold text-foreground">Launch ready</p>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Use this foundation to build the ContextFlow AI experience.
-          </p>
+        <div className="mt-auto space-y-4 rounded-3xl border border-border bg-card p-5">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Launch ready</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Use this foundation to build the ContextFlow AI experience.
+            </p>
+          </div>
+          {user ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={logout}
+              aria-label="Logout"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign out
+            </Button>
+          ) : null}
         </div>
       </aside>
     </>
