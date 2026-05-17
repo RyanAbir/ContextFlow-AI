@@ -4,6 +4,7 @@ import { LogOut, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { useAuth } from "@/context/auth-context"
+import { WorkspaceSwitcher } from "@/components/workspaces/workspace-switcher"
 
 interface TopNavbarProps {
   onMobileMenuToggle: () => void
@@ -30,6 +31,7 @@ export function TopNavbar({ onMobileMenuToggle }: TopNavbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <WorkspaceSwitcher />
           <ThemeToggle />
           {user ? (
             <Button
