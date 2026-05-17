@@ -11,6 +11,7 @@ type WorkspaceContextValue = {
   setCurrentWorkspace: (workspace: Workspace | null) => void
   workspaces: Workspace[] | null
   loading: boolean
+  addWorkspace: (workspace: Workspace) => void
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined)
@@ -49,8 +50,17 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe()
   }, [authLoading, user])
 
+  const addWorkspace = (workspace: Workspace) => {
+    setWorkspaces((prev) => {
+      const list = prev ?? []
+      if (list.some((w) => w.id === workspace.id)) return list
+      return [workspace, ...list]
+    })
+    setCurrentWorkspace(workspace)
+  }
+
   const value = useMemo(
-    () => ({ currentWorkspace, setCurrentWorkspace, workspaces, loading }),
+    () => ({ currentWorkspace, setCurrentWorkspace, workspaces, loading, addWorkspace }),
     [currentWorkspace, loading, workspaces]
   )
 

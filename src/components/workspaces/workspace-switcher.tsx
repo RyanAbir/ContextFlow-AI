@@ -4,10 +4,14 @@ import { useEffect, useRef, useState } from "react"
 import { ChevronDown, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useWorkspace } from "@/context/workspace-context"
+import dynamic from "next/dynamic"
+
+const CreateWorkspaceForm = dynamic(() => import("./CreateWorkspaceForm").then((m) => m.CreateWorkspaceForm), { ssr: false })
 
 export function WorkspaceSwitcher() {
   const { currentWorkspace, setCurrentWorkspace, workspaces, loading } = useWorkspace()
   const [open, setOpen] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -72,11 +76,32 @@ export function WorkspaceSwitcher() {
               className="w-full justify-start gap-2"
               onClick={() => {
                 setOpen(false)
+                setShowCreate(true)
               }}
             >
               <Plus className="h-4 w-4" />
               Create workspace
             </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {showCreate ? (
+        <div className="fixed inset-0 z-40 flex items-end justify-center p-3 sm:items-center sm:p-6">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
+          <div className="relative max-h-[92vh] w-full max-w-md overflow-y-auto">
+            <div className="rounded-2xl border border-border bg-card/95 p-4 shadow-lg">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Create workspace</h3>
+                <Button variant="ghost" size="icon" onClick={() => setShowCreate(false)} aria-label="Close">
+                  ×
+                </Button>
+              </div>
+              <div className="mt-4">
+                {/* Lazy load form component to keep bundle small */}
+                <CreateWorkspaceForm onClose={() => setShowCreate(false)} />
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
