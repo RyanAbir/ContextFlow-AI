@@ -61,7 +61,7 @@ export function TaskCard({ task, onEdit }: TaskCardProps) {
   }
 
   return (
-    <Card className="rounded-2xl p-5">
+    <Card className="rounded-2xl p-4 sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -69,7 +69,7 @@ export function TaskCard({ task, onEdit }: TaskCardProps) {
             <Badge className={priorityClasses[task.priority]}>{priorityLabels[task.priority]}</Badge>
           </div>
 
-          <h3 className="mt-3 text-base font-semibold text-foreground">{task.title}</h3>
+          <h3 className="mt-3 break-words text-base font-semibold text-foreground">{task.title}</h3>
           {task.description ? (
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{task.description}</p>
           ) : (
@@ -82,7 +82,7 @@ export function TaskCard({ task, onEdit }: TaskCardProps) {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:items-center">
           <Button size="sm" variant="outline" onClick={() => onEdit(task)}>
             Edit
           </Button>

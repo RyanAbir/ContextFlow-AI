@@ -37,19 +37,19 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
     }
   }
   return (
-    <Card className="space-y-3 cursor-pointer" onClick={() => onClick?.(project.id)}>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold text-foreground">{project.title}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">{project.description}</p>
+    <Card className="h-full cursor-pointer space-y-3 hover:border-border/80 hover:bg-card" onClick={() => onClick?.(project.id)}>
+      <div className="flex h-full flex-col gap-4">
+        <div className="min-w-0 flex-1">
+          <h3 className="break-words text-lg font-semibold text-foreground">{project.title}</h3>
+          <p className="mt-1 line-clamp-3 text-sm leading-6 text-muted-foreground">{project.description || "No description provided."}</p>
           <p className="mt-3 text-xs text-muted-foreground">Created {project.createdAt.toLocaleDateString()}</p>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
-          <div className="rounded-full bg-muted/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        <div className="flex flex-col gap-3">
+          <div className="w-fit rounded-full bg-muted/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             {project.status}
           </div>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
             <Button size="sm" variant="ghost" onClick={(e) => handleChangeStatus("active", e)}>Active</Button>
             <Button size="sm" variant="ghost" onClick={(e) => handleChangeStatus("paused", e)}>Pause</Button>
             <Button size="sm" variant="destructive" onClick={(e) => handleDelete(e)} disabled={isDeleting}>

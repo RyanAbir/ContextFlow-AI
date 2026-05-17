@@ -93,7 +93,7 @@ export function TaskForm({ projectId, userId, task, onClose }: TaskFormProps) {
             required
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            className="mt-2 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
+            className="mt-2 min-h-11 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
             placeholder="Task title"
           />
         </div>
@@ -115,7 +115,7 @@ export function TaskForm({ projectId, userId, task, onClose }: TaskFormProps) {
             <select
               value={status}
               onChange={(event) => setStatus(event.target.value as TaskStatus)}
-              className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
+              className="mt-2 min-h-11 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
             >
               {statusOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -130,7 +130,7 @@ export function TaskForm({ projectId, userId, task, onClose }: TaskFormProps) {
             <select
               value={priority}
               onChange={(event) => setPriority(event.target.value as TaskPriority)}
-              className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
+              className="mt-2 min-h-11 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
             >
               {priorityOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -146,12 +146,12 @@ export function TaskForm({ projectId, userId, task, onClose }: TaskFormProps) {
               type="date"
               value={dueDate}
               onChange={(event) => setDueDate(event.target.value)}
-              className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
+              className="mt-2 min-h-11 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
             />
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
           <Button type="button" variant="ghost" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>

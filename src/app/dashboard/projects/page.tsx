@@ -38,27 +38,27 @@ export default function ProjectsPage() {
 
   return (
     <DashboardShell>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Projects</p>
-            <h1 className="mt-2 text-3xl font-semibold text-foreground">Project workspaces</h1>
+      <div className="space-y-5 sm:space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground sm:text-sm sm:tracking-[0.3em]">Projects</p>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground sm:text-3xl">Project workspaces</h1>
           </div>
-          <div>
-            <Button onClick={() => setShowCreate(true)}>New project</Button>
-          </div>
+          <Button className="w-full sm:w-auto" onClick={() => setShowCreate(true)}>New project</Button>
         </div>
 
         <div>
           {projects === null ? (
-            <p className="text-sm text-muted-foreground">Loading your projects…</p>
+            <div className="rounded-2xl border border-border bg-card/95 p-6 text-sm text-muted-foreground">
+              Loading your projects...
+            </div>
           ) : projects.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card/95 p-8 text-center">
+            <div className="rounded-2xl border border-border bg-card/95 p-6 text-center sm:p-8">
               <p className="text-lg font-semibold text-foreground">No projects yet</p>
               <p className="mt-2 text-sm text-muted-foreground">Create your first project to get started.</p>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
               {projects.map((p) => (
                 <ProjectCard key={p.id} project={p} onClick={(id) => router.push(`/dashboard/projects/${id}`)} />
               ))}
@@ -67,9 +67,9 @@ export default function ProjectsPage() {
         </div>
 
         {showCreate ? (
-          <div className="fixed inset-0 z-40 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setShowCreate(false)} />
-            <div className="relative w-full max-w-2xl p-6">
+          <div className="fixed inset-0 z-40 flex items-end justify-center p-3 sm:items-center sm:p-6">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCreate(false)} />
+            <div className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto">
               <CreateProjectForm onClose={() => setShowCreate(false)} />
             </div>
           </div>

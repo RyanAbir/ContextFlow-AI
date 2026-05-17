@@ -41,7 +41,7 @@ export function EditProjectForm({ project, onSaved, onClose }: EditProjectFormPr
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="mt-2 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground"
+            className="mt-2 min-h-11 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
           />
         </div>
 
@@ -50,7 +50,7 @@ export function EditProjectForm({ project, onSaved, onClose }: EditProjectFormPr
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="mt-2 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground"
+            className="mt-2 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
             rows={3}
           />
         </div>
@@ -60,7 +60,7 @@ export function EditProjectForm({ project, onSaved, onClose }: EditProjectFormPr
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as Project["status"])}
-            className="mt-2 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground"
+            className="mt-2 min-h-11 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
           >
             <option value="active">Active</option>
             <option value="paused">Paused</option>
@@ -68,7 +68,7 @@ export function EditProjectForm({ project, onSaved, onClose }: EditProjectFormPr
           </select>
         </div>
 
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
           <Button type="button" variant="ghost" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>

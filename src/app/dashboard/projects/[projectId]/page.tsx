@@ -234,18 +234,18 @@ export default function ProjectDetailPage() {
 
   return (
     <DashboardShell>
-      <div className="space-y-6">
+      <div className="space-y-5 sm:space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Project</p>
-            <h1 className="mt-2 text-3xl font-semibold text-foreground">{project.title}</h1>
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground sm:text-sm sm:tracking-[0.3em]">Project</p>
+            <h1 className="mt-2 break-words text-2xl font-semibold text-foreground sm:text-3xl">{project.title}</h1>
             <p className="mt-2 text-sm text-muted-foreground">Created {project.createdAt.toLocaleDateString()}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
             <Button variant="outline" onClick={() => router.push("/dashboard/projects")}>
               Back
             </Button>
-            <Button variant="outline" onClick={handleGenerateSummary} disabled={!canGenerateSummary}>
+            <Button className="col-span-2 sm:col-span-1" variant="outline" onClick={handleGenerateSummary} disabled={!canGenerateSummary}>
               {isGeneratingSummary ? "Generating..." : "Generate AI Summary"}
             </Button>
             <Button onClick={() => setEditing(true)}>Edit</Button>
@@ -255,7 +255,7 @@ export default function ProjectDetailPage() {
         <Card>
           <p className="text-sm text-muted-foreground">{project.description || "No description provided."}</p>
           <div className="mt-4">
-            <span className="rounded-full bg-muted/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            <span className="rounded-full bg-muted/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               {project.status}
             </span>
           </div>
@@ -264,10 +264,10 @@ export default function ProjectDetailPage() {
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Context</p>
-              <h2 className="mt-2 text-2xl font-semibold text-foreground">Context notes</h2>
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground sm:text-sm sm:tracking-[0.3em]">Context</p>
+              <h2 className="mt-2 text-xl font-semibold text-foreground sm:text-2xl">Context notes</h2>
             </div>
-            <Button onClick={() => setShowCreateNote(true)}>New note</Button>
+            <Button className="w-full sm:w-auto" onClick={() => setShowCreateNote(true)}>New note</Button>
           </div>
 
           {notes === null ? (
@@ -275,7 +275,7 @@ export default function ProjectDetailPage() {
               Loading context notes...
             </div>
           ) : notes.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card/95 p-8 text-center">
+            <div className="rounded-2xl border border-border bg-card/95 p-6 text-center sm:p-8">
               <p className="text-lg font-semibold text-foreground">No context notes yet</p>
               <p className="mt-2 text-sm text-muted-foreground">
                 Store requirements, decisions, ideas, and meeting notes for this project.
@@ -293,10 +293,10 @@ export default function ProjectDetailPage() {
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Tasks</p>
-              <h2 className="mt-2 text-2xl font-semibold text-foreground">Project tasks</h2>
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground sm:text-sm sm:tracking-[0.3em]">Tasks</p>
+              <h2 className="mt-2 text-xl font-semibold text-foreground sm:text-2xl">Project tasks</h2>
             </div>
-            <Button onClick={() => setShowCreateTask(true)}>New task</Button>
+            <Button className="w-full sm:w-auto" onClick={() => setShowCreateTask(true)}>New task</Button>
           </div>
 
           {tasks === null ? (
@@ -304,7 +304,7 @@ export default function ProjectDetailPage() {
               Loading tasks...
             </div>
           ) : tasks.length === 0 ? (
-            <div className="rounded-2xl border border-border bg-card/95 p-8 text-center">
+            <div className="rounded-2xl border border-border bg-card/95 p-6 text-center sm:p-8">
               <p className="text-lg font-semibold text-foreground">No tasks yet</p>
               <p className="mt-2 text-sm text-muted-foreground">Create the first task for this project.</p>
             </div>
@@ -318,9 +318,9 @@ export default function ProjectDetailPage() {
         </section>
 
         {editing ? (
-          <div className="fixed inset-0 z-40 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setEditing(false)} />
-            <div className="relative w-full max-w-2xl p-6">
+          <div className="fixed inset-0 z-40 flex items-end justify-center p-3 sm:items-center sm:p-6">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setEditing(false)} />
+            <div className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto">
               <EditProjectForm
                 project={project}
                 onSaved={(updated) => setProjectResult({ projectId: updated.id, status: "ready", project: updated })}
@@ -331,16 +331,16 @@ export default function ProjectDetailPage() {
         ) : null}
 
         {showAiSummary ? (
-          <div className="fixed inset-0 z-40 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setShowAiSummary(false)} />
-            <div className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto p-6">
+          <div className="fixed inset-0 z-40 flex items-end justify-center p-3 sm:items-center sm:p-6">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowAiSummary(false)} />
+            <div className="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto">
               <Card className="space-y-5 rounded-2xl">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">AI Summary</p>
-                    <h2 className="mt-2 text-2xl font-semibold text-foreground">{project.title}</h2>
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground sm:text-sm sm:tracking-[0.3em]">AI Summary</p>
+                    <h2 className="mt-2 break-words text-xl font-semibold text-foreground sm:text-2xl">{project.title}</h2>
                   </div>
-                  <Button variant="ghost" onClick={() => setShowAiSummary(false)}>
+                  <Button className="w-full sm:w-auto" variant="ghost" onClick={() => setShowAiSummary(false)}>
                     Close
                   </Button>
                 </div>
@@ -374,7 +374,7 @@ export default function ProjectDetailPage() {
                       <h3 className="text-sm font-semibold text-foreground">Recommended Next Steps</h3>
                       <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
                         {aiSummary.recommendedNextSteps.map((step) => (
-                          <li key={step}>{step}</li>
+                          <li className="list-inside list-disc" key={step}>{step}</li>
                         ))}
                       </ul>
                     </section>
@@ -383,7 +383,7 @@ export default function ProjectDetailPage() {
                       <h3 className="text-sm font-semibold text-foreground">Priority Suggestions</h3>
                       <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
                         {aiSummary.prioritySuggestions.map((suggestion) => (
-                          <li key={suggestion}>{suggestion}</li>
+                          <li className="list-inside list-disc" key={suggestion}>{suggestion}</li>
                         ))}
                       </ul>
                     </section>
@@ -395,18 +395,18 @@ export default function ProjectDetailPage() {
         ) : null}
 
         {showCreateNote ? (
-          <div className="fixed inset-0 z-40 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setShowCreateNote(false)} />
-            <div className="relative w-full max-w-2xl p-6">
+          <div className="fixed inset-0 z-40 flex items-end justify-center p-3 sm:items-center sm:p-6">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateNote(false)} />
+            <div className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto">
               <ContextNoteForm projectId={project.id} userId={user.uid} onClose={() => setShowCreateNote(false)} />
             </div>
           </div>
         ) : null}
 
         {editingNote ? (
-          <div className="fixed inset-0 z-40 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setEditingNote(null)} />
-            <div className="relative w-full max-w-2xl p-6">
+          <div className="fixed inset-0 z-40 flex items-end justify-center p-3 sm:items-center sm:p-6">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setEditingNote(null)} />
+            <div className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto">
               <ContextNoteForm
                 projectId={project.id}
                 userId={user.uid}
@@ -418,18 +418,18 @@ export default function ProjectDetailPage() {
         ) : null}
 
         {showCreateTask ? (
-          <div className="fixed inset-0 z-40 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setShowCreateTask(false)} />
-            <div className="relative w-full max-w-2xl p-6">
+          <div className="fixed inset-0 z-40 flex items-end justify-center p-3 sm:items-center sm:p-6">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateTask(false)} />
+            <div className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto">
               <TaskForm projectId={project.id} userId={user.uid} onClose={() => setShowCreateTask(false)} />
             </div>
           </div>
         ) : null}
 
         {editingTask ? (
-          <div className="fixed inset-0 z-40 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setEditingTask(null)} />
-            <div className="relative w-full max-w-2xl p-6">
+          <div className="fixed inset-0 z-40 flex items-end justify-center p-3 sm:items-center sm:p-6">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setEditingTask(null)} />
+            <div className="relative max-h-[92vh] w-full max-w-2xl overflow-y-auto">
               <TaskForm
                 projectId={project.id}
                 userId={user.uid}

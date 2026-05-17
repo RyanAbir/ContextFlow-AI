@@ -13,19 +13,19 @@ export function TopNavbar({ onMobileMenuToggle }: TopNavbarProps) {
   const { user, logout } = useAuth()
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border/70 bg-background/90 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 md:px-8">
+    <header className="sticky top-0 z-30 border-b border-border/70 bg-background/90 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:px-4 md:px-6 xl:px-8">
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="size-10 md:hidden"
           onClick={onMobileMenuToggle}
           aria-label="Open sidebar"
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="text-sm font-medium text-muted-foreground">
+        <div className="min-w-0 flex-1 truncate text-sm font-medium text-muted-foreground md:flex-none">
           Workspace overview
         </div>
 
@@ -35,6 +35,7 @@ export function TopNavbar({ onMobileMenuToggle }: TopNavbarProps) {
             <Button
               variant="ghost"
               size="icon"
+              className="size-10"
               onClick={logout}
               aria-label="Logout"
             >

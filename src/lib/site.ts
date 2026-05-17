@@ -14,11 +14,11 @@ export type NavItem = {
 }
 
 export const sidebarNav: NavItem[] = [
-  { title: "Dashboard", href: "#dashboard", icon: LayoutDashboard },
-  { title: "Projects", href: "#projects", icon: Folder },
-  { title: "Tasks", href: "#tasks", icon: CheckSquare },
-  { title: "AI Insights", href: "#insights", icon: Sparkles },
-  { title: "Settings", href: "#settings", icon: Settings2 },
+  { title: "Dashboard", href: "/dashboard#dashboard", icon: LayoutDashboard },
+  { title: "Projects", href: "/dashboard/projects", icon: Folder },
+  { title: "Tasks", href: "/dashboard#tasks", icon: CheckSquare },
+  { title: "AI Insights", href: "/dashboard#insights", icon: Sparkles },
+  { title: "Settings", href: "/dashboard#settings", icon: Settings2 },
 ]
 
 export const siteConfig = {

@@ -19,14 +19,14 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     <>
       <div
         className={cn(
-          "fixed inset-0 z-20 bg-black/40 transition-opacity duration-200 md:hidden",
+          "fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-200 md:hidden",
           open ? "opacity-100 visible" : "opacity-0 invisible"
         )}
         onClick={onClose}
       />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-border bg-background/95 p-6 shadow-2xl shadow-black/10 backdrop-blur-xl transition-transform duration-300 md:static md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[min(18rem,calc(100vw-1.5rem))] flex-col overflow-y-auto border-r border-border bg-background/95 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl transition-transform duration-300 sm:p-6 md:w-72 md:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -53,7 +53,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <Link
               key={item.title}
               href={item.href}
-              className="group flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium text-foreground transition hover:bg-muted hover:text-foreground"
+              onClick={onClose}
+              className="group flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-foreground transition hover:bg-muted hover:text-foreground"
             >
               <item.icon className="h-4 w-4 transition group-hover:text-primary" />
               {item.title}
@@ -61,7 +62,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           ))}
         </nav>
 
-        <div className="mt-auto space-y-4 rounded-3xl border border-border bg-card p-5">
+        <div className="mt-8 space-y-4 rounded-2xl border border-border bg-card/90 p-4 sm:mt-auto sm:p-5">
           <div>
             <p className="text-sm font-semibold text-foreground">Launch ready</p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
