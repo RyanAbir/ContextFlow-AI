@@ -14,6 +14,7 @@ import { useAuth } from "@/context/auth-context"
 import { subscribeToProjectNotes } from "@/lib/context-notes"
 import { getProjectById } from "@/lib/projects"
 import { subscribeToProjectTasks } from "@/lib/tasks"
+import type { ProjectAiSummary } from "@/types/ai-summary"
 import type { ContextNote } from "@/types/context-note"
 import type { Project } from "@/types/project"
 import type { Task } from "@/types/task"
@@ -32,6 +33,11 @@ type NotesResult = {
   notes: ContextNote[]
 }
 
+type ProjectSummaryApiResponse = {
+  summary?: ProjectAiSummary
+  error?: string
+}
+
 export default function ProjectDetailPage() {
   const { projectId } = useParams() as { projectId: string }
   const router = useRouter()
@@ -44,6 +50,10 @@ export default function ProjectDetailPage() {
   const [editingNote, setEditingNote] = useState<ContextNote | null>(null)
   const [showCreateTask, setShowCreateTask] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [aiSummary, setAiSummary] = useState<ProjectAiSummary | null>(null)
+  const [showAiSummary, setShowAiSummary] = useState(false)
+  const [aiSummaryError, setAiSummaryError] = useState<string | null>(null)
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -168,6 +178,59 @@ export default function ProjectDetailPage() {
   const project = projectResult.project
   const notes = notesResult?.projectId === project.id ? notesResult.notes : null
   const tasks = tasksResult?.projectId === project.id ? tasksResult.tasks : null
+  const canGenerateSummary = tasks !== null && notes !== null && !isGeneratingSummary
+
+  const handleGenerateSummary = async () => {
+    if (!canGenerateSummary) return
+
+    setIsGeneratingSummary(true)
+    setAiSummaryError(null)
+    setShowAiSummary(true)
+
+    try {
+      const response = await fetch("/api/ai/project-summary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          project: {
+            id: project.id,
+            title: project.title,
+            description: project.description ?? "",
+            status: project.status,
+          },
+          tasks: tasks.map((task) => ({
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            dueDate: task.dueDate?.toISOString(),
+          })),
+          contextNotes: notes.map((note) => ({
+            title: note.title,
+            content: note.content,
+            category: note.category,
+            updatedAt: note.updatedAt.toISOString(),
+          })),
+        }),
+      })
+
+      const data = (await response.json().catch(() => ({}))) as ProjectSummaryApiResponse
+
+      if (!response.ok || !data.summary) {
+        setAiSummaryError(data.error ?? "Unable to generate an AI summary right now.")
+        return
+      }
+
+      setAiSummary(data.summary)
+    } catch (error) {
+      console.error(error)
+      setAiSummaryError("Unable to reach the AI summary service.")
+    } finally {
+      setIsGeneratingSummary(false)
+    }
+  }
 
   return (
     <DashboardShell>
@@ -181,6 +244,9 @@ export default function ProjectDetailPage() {
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => router.push("/dashboard/projects")}>
               Back
+            </Button>
+            <Button variant="outline" onClick={handleGenerateSummary} disabled={!canGenerateSummary}>
+              {isGeneratingSummary ? "Generating..." : "Generate AI Summary"}
             </Button>
             <Button onClick={() => setEditing(true)}>Edit</Button>
           </div>
@@ -260,6 +326,70 @@ export default function ProjectDetailPage() {
                 onSaved={(updated) => setProjectResult({ projectId: updated.id, status: "ready", project: updated })}
                 onClose={() => setEditing(false)}
               />
+            </div>
+          </div>
+        ) : null}
+
+        {showAiSummary ? (
+          <div className="fixed inset-0 z-40 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowAiSummary(false)} />
+            <div className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto p-6">
+              <Card className="space-y-5 rounded-2xl">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">AI Summary</p>
+                    <h2 className="mt-2 text-2xl font-semibold text-foreground">{project.title}</h2>
+                  </div>
+                  <Button variant="ghost" onClick={() => setShowAiSummary(false)}>
+                    Close
+                  </Button>
+                </div>
+
+                {isGeneratingSummary ? (
+                  <div className="rounded-2xl border border-border bg-background/40 p-6 text-sm text-muted-foreground">
+                    Generating project summary...
+                  </div>
+                ) : aiSummaryError ? (
+                  <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-sm text-destructive">
+                    {aiSummaryError}
+                  </div>
+                ) : aiSummary ? (
+                  <div className="space-y-4">
+                    <section className="rounded-2xl border border-border bg-background/40 p-5">
+                      <h3 className="text-sm font-semibold text-foreground">Project Summary</h3>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{aiSummary.projectSummary}</p>
+                    </section>
+
+                    <section className="rounded-2xl border border-border bg-background/40 p-5">
+                      <h3 className="text-sm font-semibold text-foreground">Current Progress</h3>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{aiSummary.currentProgress}</p>
+                    </section>
+
+                    <section className="rounded-2xl border border-border bg-background/40 p-5">
+                      <h3 className="text-sm font-semibold text-foreground">Blockers/Risks</h3>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{aiSummary.blockersRisks}</p>
+                    </section>
+
+                    <section className="rounded-2xl border border-border bg-background/40 p-5">
+                      <h3 className="text-sm font-semibold text-foreground">Recommended Next Steps</h3>
+                      <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
+                        {aiSummary.recommendedNextSteps.map((step) => (
+                          <li key={step}>{step}</li>
+                        ))}
+                      </ul>
+                    </section>
+
+                    <section className="rounded-2xl border border-border bg-background/40 p-5">
+                      <h3 className="text-sm font-semibold text-foreground">Priority Suggestions</h3>
+                      <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
+                        {aiSummary.prioritySuggestions.map((suggestion) => (
+                          <li key={suggestion}>{suggestion}</li>
+                        ))}
+                      </ul>
+                    </section>
+                  </div>
+                ) : null}
+              </Card>
             </div>
           </div>
         ) : null}
