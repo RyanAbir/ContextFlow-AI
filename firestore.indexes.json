@@ -2,7 +2,7 @@
   "indexes": [
     {
       "collectionGroup": "projects",
-      "queryScope": "Collection",
+      "queryScope": "COLLECTION",
       "fields": [
         {"fieldPath": "userId", "order": "Ascending"},
         {"fieldPath": "createdAt", "order": "Descending"}
@@ -10,7 +10,7 @@
     },
     {
       "collectionGroup": "tasks",
-      "queryScope": "Collection",
+      "queryScope": "COLLECTION",
       "fields": [
         {"fieldPath": "projectId", "order": "Ascending"},
         {"fieldPath": "status", "order": "Ascending"}
@@ -18,7 +18,7 @@
     },
     {
       "collectionGroup": "tasks",
-      "queryScope": "Collection",
+      "queryScope": "COLLECTION",
       "fields": [
         {"fieldPath": "projectId", "order": "Ascending"},
         {"fieldPath": "priority", "order": "Ascending"}
@@ -26,7 +26,7 @@
     },
     {
       "collectionGroup": "tasks",
-      "queryScope": "Collection",
+      "queryScope": "COLLECTION",
       "fields": [
         {"fieldPath": "projectId", "order": "Ascending"},
         {"fieldPath": "createdAt", "order": "Descending"}
@@ -34,7 +34,7 @@
     },
     {
       "collectionGroup": "tasks",
-      "queryScope": "Collection",
+      "queryScope": "COLLECTION",
       "fields": [
         {"fieldPath": "projectId", "order": "Ascending"},
         {"fieldPath": "status", "order": "Ascending"},
@@ -43,7 +43,7 @@
     },
     {
       "collectionGroup": "tasks",
-      "queryScope": "Collection",
+      "queryScope": "COLLECTION",
       "fields": [
         {"fieldPath": "projectId", "order": "Ascending"},
         {"fieldPath": "priority", "order": "Ascending"},
@@ -52,7 +52,7 @@
     },
     {
       "collectionGroup": "contextNotes",
-      "queryScope": "Collection",
+      "queryScope": "COLLECTION",
       "fields": [
         {"fieldPath": "projectId", "order": "Ascending"},
         {"fieldPath": "createdAt", "order": "Descending"}
