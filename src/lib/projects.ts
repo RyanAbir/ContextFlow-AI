@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   limit,
   onSnapshot,
@@ -106,4 +107,23 @@ export async function deleteProject(projectId: string): Promise<void> {
   const database = ensureDb()
   const ref = doc(database, "projects", projectId)
   await deleteDoc(ref)
+}
+
+export async function getProjectById(projectId: string) {
+  const database = ensureDb()
+  const ref = doc(database, "projects", projectId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) return null
+  const data = snap.data() as Record<string, unknown>
+  const createdField = data.createdAt as { toDate?: () => Date } | undefined
+  const created = createdField && typeof createdField.toDate === "function" ? createdField.toDate() : new Date()
+
+  return {
+    id: snap.id,
+    userId: (data.userId as string) ?? "",
+    title: (data.title as string) ?? "Untitled",
+    description: (data.description as string) ?? "",
+    status: (data.status as ProjectStatus) ?? "active",
+    createdAt: created,
+  }
 }

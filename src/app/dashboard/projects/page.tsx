@@ -60,7 +60,7 @@ export default function ProjectsPage() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
               {projects.map((p) => (
-                <ProjectCard key={p.id} project={p} />
+                <ProjectCard key={p.id} project={p} onClick={(id) => router.push(`/dashboard/projects/${id}`)} />
               ))}
             </div>
           )}

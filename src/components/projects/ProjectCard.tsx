@@ -9,12 +9,14 @@ import { useState } from "react"
 
 interface ProjectCardProps {
   project: Project
+  onClick?: (id: string) => void
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, onClick }: ProjectCardProps) {
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const handleDelete = async () => {
+  const handleDelete = async (e?: React.MouseEvent) => {
+    e?.stopPropagation()
     if (!confirm(`Delete project "${project.title}"?`)) return
     setIsDeleting(true)
     try {
@@ -26,16 +28,16 @@ export function ProjectCard({ project }: ProjectCardProps) {
     }
   }
 
-  const handleChangeStatus = async (status: Project["status"]) => {
+  const handleChangeStatus = async (status: Project["status"], e?: React.MouseEvent) => {
+    e?.stopPropagation()
     try {
       await updateProject(project.id, { status })
     } catch (err) {
       console.error(err)
     }
   }
-
   return (
-    <Card className="space-y-3">
+    <Card className="space-y-3 cursor-pointer" onClick={() => onClick?.(project.id)}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-foreground">{project.title}</h3>
@@ -48,9 +50,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
             {project.status}
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="ghost" onClick={() => handleChangeStatus("active")}>Active</Button>
-            <Button size="sm" variant="ghost" onClick={() => handleChangeStatus("paused")}>Pause</Button>
-            <Button size="sm" variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+            <Button size="sm" variant="ghost" onClick={(e) => handleChangeStatus("active", e)}>Active</Button>
+            <Button size="sm" variant="ghost" onClick={(e) => handleChangeStatus("paused", e)}>Pause</Button>
+            <Button size="sm" variant="destructive" onClick={(e) => handleDelete(e)} disabled={isDeleting}>
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </div>
