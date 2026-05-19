@@ -5,6 +5,7 @@ export type Workspace = {
   name: string
   description?: string
   ownerId: string
+  createdBy?: string
   createdAt: Date
   updatedAt?: Date
   memberCount: number

@@ -12,6 +12,7 @@ import {
   where,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { getProjectById } from "@/lib/projects"
 import type { ContextNote, ContextNoteCategory } from "@/types/context-note"
 
 type DateLike = {
@@ -39,6 +40,10 @@ function ensureDb() {
   return db
 }
 
+function logFirestoreError(helper: string, queryShape: string, error: unknown) {
+  console.error(`[Firestore:${helper}] ${queryShape}`, error)
+}
+
 function toDate(value: unknown): Date | undefined {
   if (!value) return undefined
   if (value instanceof Date) return value
@@ -63,6 +68,8 @@ function mapContextNote(id: string, data: Record<string, unknown>): ContextNote 
     id,
     projectId: typeof data.projectId === "string" ? data.projectId : "",
     userId: typeof data.userId === "string" ? data.userId : "",
+    workspaceId: typeof data.workspaceId === "string" ? data.workspaceId : undefined,
+    createdBy: typeof data.createdBy === "string" ? data.createdBy : undefined,
     title: typeof data.title === "string" ? data.title : "Untitled note",
     content: typeof data.content === "string" ? data.content : "",
     category: toCategory(data.category),
@@ -79,15 +86,27 @@ export async function createContextNote(
   const database = ensureDb()
   const notesRef = collection(database, "contextNotes")
 
-  await addDoc(notesRef, {
-    projectId,
-    userId,
-    title: data.title,
-    content: data.content,
-    category: data.category ?? null,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  })
+  const project = await getProjectById(projectId)
+  if (!project) {
+    throw new Error("Project not found")
+  }
+
+  try {
+    await addDoc(notesRef, {
+      projectId,
+      userId,
+      createdBy: userId,
+      workspaceId: project.workspaceId ?? null,
+      title: data.title,
+      content: data.content,
+      category: data.category ?? null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+  } catch (error) {
+    logFirestoreError("createContextNote", "add contextNotes document", error)
+    throw error
+  }
 }
 
 export function subscribeToProjectNotes(
@@ -114,14 +133,24 @@ export function subscribeToProjectNotes(
 export async function updateContextNote(noteId: string, updates: UpdateContextNoteInput): Promise<void> {
   const database = ensureDb()
   const ref = doc(database, "contextNotes", noteId)
-  await updateDoc(ref, {
-    ...updates,
-    updatedAt: serverTimestamp(),
-  })
+  try {
+    await updateDoc(ref, {
+      ...updates,
+      updatedAt: serverTimestamp(),
+    })
+  } catch (error) {
+    logFirestoreError("updateContextNote", "update contextNotes/{noteId}", error)
+    throw error
+  }
 }
 
 export async function deleteContextNote(noteId: string): Promise<void> {
   const database = ensureDb()
   const ref = doc(database, "contextNotes", noteId)
-  await deleteDoc(ref)
+  try {
+    await deleteDoc(ref)
+  } catch (error) {
+    logFirestoreError("deleteContextNote", "delete contextNotes/{noteId}", error)
+    throw error
+  }
 }

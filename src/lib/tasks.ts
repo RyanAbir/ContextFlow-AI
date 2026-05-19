@@ -13,6 +13,7 @@ import {
   where,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { getProjectById } from "@/lib/projects"
 import type { Task, TaskPriority, TaskStatus } from "@/types/task"
 
 type DateLike = {
@@ -42,6 +43,10 @@ function ensureDb() {
   return db
 }
 
+function logFirestoreError(helper: string, queryShape: string, error: unknown) {
+  console.error(`[Firestore:${helper}] ${queryShape}`, error)
+}
+
 function toDate(value: unknown): Date | undefined {
   if (!value) return undefined
   if (value instanceof Date) return value
@@ -59,6 +64,8 @@ function mapTask(id: string, data: Record<string, unknown>): Task {
     id,
     projectId: typeof data.projectId === "string" ? data.projectId : "",
     userId: typeof data.userId === "string" ? data.userId : "",
+    workspaceId: typeof data.workspaceId === "string" ? data.workspaceId : undefined,
+    createdBy: typeof data.createdBy === "string" ? data.createdBy : undefined,
     title: typeof data.title === "string" ? data.title : "Untitled task",
     description: typeof data.description === "string" ? data.description : "",
     status: data.status === "in_progress" || data.status === "done" ? data.status : "todo",
@@ -72,16 +79,28 @@ export async function createTask(projectId: string, userId: string, data: Create
   const database = ensureDb()
   const tasksRef = collection(database, "tasks")
 
-  await addDoc(tasksRef, {
-    projectId,
-    userId,
-    title: data.title,
-    description: data.description,
-    status: data.status,
-    priority: data.priority,
-    dueDate: data.dueDate ?? null,
-    createdAt: serverTimestamp(),
-  })
+  const project = await getProjectById(projectId)
+  if (!project) {
+    throw new Error("Project not found")
+  }
+
+  try {
+    await addDoc(tasksRef, {
+      projectId,
+      userId,
+      createdBy: userId,
+      workspaceId: project.workspaceId ?? null,
+      title: data.title,
+      description: data.description,
+      status: data.status,
+      priority: data.priority,
+      dueDate: data.dueDate ?? null,
+      createdAt: serverTimestamp(),
+    })
+  } catch (error) {
+    logFirestoreError("createTask", "add tasks document", error)
+    throw error
+  }
 }
 
 export async function listUserTasks(userId: string): Promise<Task[]> {
@@ -132,11 +151,21 @@ export function subscribeToProjectTasks(projectId: string, userId: string, onCha
 export async function updateTask(taskId: string, updates: UpdateTaskInput): Promise<void> {
   const database = ensureDb()
   const ref = doc(database, "tasks", taskId)
-  await updateDoc(ref, updates)
+  try {
+    await updateDoc(ref, updates)
+  } catch (error) {
+    logFirestoreError("updateTask", "update tasks/{taskId}", error)
+    throw error
+  }
 }
 
 export async function deleteTask(taskId: string): Promise<void> {
   const database = ensureDb()
   const ref = doc(database, "tasks", taskId)
-  await deleteDoc(ref)
+  try {
+    await deleteDoc(ref)
+  } catch (error) {
+    logFirestoreError("deleteTask", "delete tasks/{taskId}", error)
+    throw error
+  }
 }

@@ -3,27 +3,38 @@ import { createWorkspaceProject, listUserProjects } from "@/lib/projects"
 import { createTask } from "@/lib/tasks"
 import { createContextNote } from "@/lib/context-notes"
 
+async function runSeedStep<T>(label: string, operation: () => Promise<T>): Promise<T> {
+  console.debug(`[DemoSeed] ${label} started`)
+  try {
+    const result = await operation()
+    console.debug(`[DemoSeed] ${label} succeeded`)
+    return result
+  } catch (error) {
+    console.error(`[DemoSeed] ${label} failed`, error)
+    throw new Error(`[DemoSeed] ${label} failed: ${(error as Error).message}`)
+  }
+}
+
 export async function seedDemoWorkspace(userId: string): Promise<string> {
   if (process.env.NODE_ENV !== "development") {
     throw new Error("Demo seed is only available in development.")
   }
 
-  const [workspaces, projects] = await Promise.all([
-    listUserWorkspaces(userId),
-    listUserProjects(userId),
-  ])
+  const [workspaces, projects] = await runSeedStep("check seed preconditions", () =>
+    Promise.all([listUserWorkspaces(userId), listUserProjects(userId)])
+  )
 
   if (workspaces.length > 0 || projects.length > 0) {
     throw new Error("Demo seed is only available for a fresh development account without existing workspaces or projects.")
   }
 
-  const workspaceId = await createWorkspace(userId, {
-    name: "ContextFlow Demo Workspace",
-    description:
-      "A sample workspace with example projects, tasks, and context notes for local development.",
-  }).catch((error) => {
-    throw new Error(`Creating workspace failed: ${(error as Error).message}`)
-  })
+  const workspaceId = await runSeedStep("create demo workspace", () =>
+    createWorkspace(userId, {
+      name: "ContextFlow Demo Workspace",
+      description:
+        "A sample workspace with example projects, tasks, and context notes for local development.",
+    })
+  )
 
   const projectSeeds = [
     {
@@ -139,34 +150,34 @@ export async function seedDemoWorkspace(userId: string): Promise<string> {
   ]
 
   for (const project of projectSeeds) {
-    const projectId = await createWorkspaceProject(workspaceId, userId, {
-      title: project.title,
-      description: project.description,
-      status: project.status,
-    }).catch((error) => {
-      throw new Error(`Creating project "${project.title}" failed: ${(error as Error).message}`)
-    })
+    const projectId = await runSeedStep(`create project "${project.title}"`, () =>
+      createWorkspaceProject(workspaceId, userId, {
+        title: project.title,
+        description: project.description,
+        status: project.status,
+      })
+    )
 
     for (const task of project.tasks) {
-      await createTask(projectId, userId, {
-        title: task.title,
-        description: task.description,
-        status: task.status,
-        priority: task.priority,
-        dueDate: task.dueDate,
-      }).catch((error) => {
-        throw new Error(`Creating task "${task.title}" for project "${project.title}" failed: ${(error as Error).message}`)
-      })
+      await runSeedStep(`create task "${task.title}" for project "${project.title}"`, () =>
+        createTask(projectId, userId, {
+          title: task.title,
+          description: task.description,
+          status: task.status,
+          priority: task.priority,
+          dueDate: task.dueDate,
+        })
+      )
     }
 
     for (const note of project.notes) {
-      await createContextNote(projectId, userId, {
-        title: note.title,
-        content: note.content,
-        category: note.category,
-      }).catch((error) => {
-        throw new Error(`Creating context note "${note.title}" for project "${project.title}" failed: ${(error as Error).message}`)
-      })
+      await runSeedStep(`create note "${note.title}" for project "${project.title}"`, () =>
+        createContextNote(projectId, userId, {
+          title: note.title,
+          content: note.content,
+          category: note.category,
+        })
+      )
     }
   }
 

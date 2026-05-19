@@ -40,19 +40,24 @@ export async function createWorkspace(userId: string, data: { name: string; desc
       name: data.name,
       description: data.description ?? "",
       ownerId: userId,
+      createdBy: userId,
       memberCount: 1,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
 
-    // create initial member document under workspace members subcollection using userId as the doc id
     const memberRef = doc(database, "workspaces", docRef.id, "members", userId)
-    await setDoc(memberRef, {
-      userId,
-      workspaceId: docRef.id,
-      role: "owner" as WorkspaceRole,
-      joinedAt: serverTimestamp(),
-    })
+    try {
+      await setDoc(memberRef, {
+        userId,
+        workspaceId: docRef.id,
+        role: "owner" as WorkspaceRole,
+        joinedAt: serverTimestamp(),
+      })
+    } catch (error) {
+      logFirestoreError("createWorkspace", "create workspaces/{workspaceId}/members/{userId}", error)
+      throw error
+    }
 
     return docRef.id
   } catch (error) {
@@ -72,6 +77,7 @@ function mapWorkspace(id: string, data: Record<string, unknown>): Workspace {
     name: (data.name as string) ?? "Untitled Workspace",
     description: (data.description as string) ?? "",
     ownerId: (data.ownerId as string) ?? "",
+    createdBy: (data.createdBy as string) ?? undefined,
     createdAt: created,
     updatedAt: updated,
     memberCount: (data.memberCount as number) ?? 0,

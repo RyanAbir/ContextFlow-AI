@@ -6,6 +6,8 @@ export type Task = {
   id: string
   projectId: string
   userId: string
+  workspaceId?: string
+  createdBy?: string
   title: string
   description: string
   status: TaskStatus

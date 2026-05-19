@@ -23,6 +23,10 @@ function ensureDb() {
   return db
 }
 
+function logFirestoreError(helper: string, queryShape: string, error: unknown) {
+  console.error(`[Firestore:${helper}] ${queryShape}`, error)
+}
+
 export async function createProject(userId: string, data: {
   title: string
   description?: string
@@ -31,14 +35,19 @@ export async function createProject(userId: string, data: {
   const database = ensureDb()
   const projectsRef = collection(database, "projects")
 
-  await addDoc(projectsRef, {
-    userId,
-    createdBy: userId,
-    title: data.title,
-    description: data.description ?? "",
-    status: data.status ?? "active",
-    createdAt: serverTimestamp(),
-  })
+  try {
+    await addDoc(projectsRef, {
+      userId,
+      createdBy: userId,
+      title: data.title,
+      description: data.description ?? "",
+      status: data.status ?? "active",
+      createdAt: serverTimestamp(),
+    })
+  } catch (error) {
+    logFirestoreError("createProject", "add projects document", error)
+    throw error
+  }
 }
 
 export async function createWorkspaceProject(workspaceId: string, userId: string, data: {
@@ -49,17 +58,22 @@ export async function createWorkspaceProject(workspaceId: string, userId: string
   const database = ensureDb()
   const projectsRef = collection(database, "projects")
 
-  const docRef = await addDoc(projectsRef, {
-    userId,
-    workspaceId,
-    createdBy: userId,
-    title: data.title,
-    description: data.description ?? "",
-    status: data.status ?? "active",
-    createdAt: serverTimestamp(),
-  })
+  try {
+    const docRef = await addDoc(projectsRef, {
+      userId,
+      workspaceId,
+      createdBy: userId,
+      title: data.title,
+      description: data.description ?? "",
+      status: data.status ?? "active",
+      createdAt: serverTimestamp(),
+    })
 
-  return docRef.id
+    return docRef.id
+  } catch (error) {
+    logFirestoreError("createWorkspaceProject", "add projects document for workspace project", error)
+    throw error
+  }
 }
 
 export function subscribeToUserProjects(userId: string, onChange: (projects: Project[]) => void) {

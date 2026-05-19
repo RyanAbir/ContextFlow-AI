@@ -4,6 +4,8 @@ export type ContextNote = {
   id: string
   projectId: string
   userId: string
+  workspaceId?: string
+  createdBy?: string
   title: string
   content: string
   category?: ContextNoteCategory
