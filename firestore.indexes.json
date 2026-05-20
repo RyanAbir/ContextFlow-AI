@@ -128,6 +128,15 @@
       ]
     },
     {
+      "collectionGroup": "workspaceInvites",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {"fieldPath": "invitedEmail", "order": "ASCENDING"},
+        {"fieldPath": "status", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
+      ]
+    },
+    {
       "collectionGroup": "workspaces",
       "queryScope": "COLLECTION",
       "fields": [

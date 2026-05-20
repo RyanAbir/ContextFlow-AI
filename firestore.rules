@@ -67,7 +67,9 @@ service cloud.firestore {
     function isInviteRecipientQuery() {
       return request.auth.token.email != null
         && queryFilterValue('invitedEmail') == request.auth.token.email
-        && queryFilterOp('invitedEmail') == '==';
+        && queryFilterOp('invitedEmail') == '=='
+        && queryFilterValue('status') == 'pending'
+        && queryFilterOp('status') == '==';
     }
 
     function isPendingInviteForRequest(inviteId, workspaceId) {
@@ -212,7 +214,7 @@ service cloud.firestore {
         && request.resource.data.status == 'pending';
 
       // Read: workspace owner/admin can query invites for their workspace;
-      // invited users can query invites addressed to their email.
+      // invited users can query only their pending invites addressed to their email.
       allow get: if isSignedIn() && (isInviteWorkspaceAdmin() || isInviteRecipient());
       allow list: if isSignedIn() && (isInviteWorkspaceAdminQuery() || isInviteRecipientQuery());
 

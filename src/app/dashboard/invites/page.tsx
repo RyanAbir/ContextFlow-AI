@@ -12,6 +12,7 @@ import type { WorkspaceInvite } from "@/types/workspace-invite"
 export default function InvitesPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
+  const userUid = user?.uid ?? null
   const userEmail = user?.email ?? null
   const [invites, setInvites] = useState<WorkspaceInvite[] | null>(null)
   const [loadingInvites, setLoadingInvites] = useState(false)
@@ -25,7 +26,11 @@ export default function InvitesPage() {
   }, [loading, router, user])
 
   const loadInvites = useCallback(async () => {
-    if (!userEmail) return
+    if (!userEmail || !userUid) return
+    console.debug("[InvitesPage] loading pending invites", {
+      uid: userUid,
+      email: userEmail,
+    })
     setLoadingInvites(true)
     setError(null)
 
@@ -38,13 +43,28 @@ export default function InvitesPage() {
     } finally {
       setLoadingInvites(false)
     }
-  }, [userEmail])
+  }, [userEmail, userUid])
 
   useEffect(() => {
-    queueMicrotask(() => {
-      void loadInvites()
-    })
-  }, [loadInvites])
+    if (!user || !userEmail) return
+    let cancelled = false
+
+    void (async () => {
+      try {
+        await user.getIdToken()
+        if (cancelled) return
+        await loadInvites()
+      } catch (err) {
+        if (cancelled) return
+        console.error("[InvitesPage] auth token readiness failed", err)
+        setError((err as Error).message ?? "Unable to load invites")
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [loadInvites, user, userEmail])
 
   const handleAccept = async (inviteId: string) => {
     if (!user?.email || !user.uid) return
