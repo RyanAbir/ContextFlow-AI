@@ -26,12 +26,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false
+    let unsubscribe: (() => void) | null = null
 
     const applyState = (update: () => void) => {
       queueMicrotask(() => {
         if (!cancelled) update()
       })
     }
+
+    const startedAt = Date.now()
 
     if (authLoading) {
       applyState(() => {
@@ -60,33 +63,58 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setError(null)
     })
 
-    const unsubscribe = subscribeToUserWorkspaces(
-      user.uid,
-      (list) => {
+    console.debug("[WorkspaceProvider] waiting for auth token", {
+      uid: user.uid,
+      authLoading,
+      startedAt,
+    })
+
+    void (async () => {
+      try {
+        await user.getIdToken()
         if (cancelled) return
-        setWorkspaces(list)
-        setLoading(false)
-        setError(null)
-        setCurrentWorkspace((current) => {
-          if (current && list.some((workspace) => workspace.id === current.id)) {
-            return current
-          }
-          return list[0] ?? null
+
+        console.debug("[WorkspaceProvider] auth token ready", {
+          uid: user.uid,
+          elapsedMs: Date.now() - startedAt,
         })
-      },
-      (err) => {
+
+        unsubscribe = subscribeToUserWorkspaces(
+          user.uid,
+          (list) => {
+            if (cancelled) return
+            setWorkspaces(list)
+            setLoading(false)
+            setError(null)
+            setCurrentWorkspace((current) => {
+              if (current && list.some((workspace) => workspace.id === current.id)) {
+                return current
+              }
+              return list[0] ?? null
+            })
+          },
+          (err) => {
+            if (cancelled) return
+            console.error("[WorkspaceProvider] subscribeToUserWorkspaces failed", err)
+            setWorkspaces([])
+            setCurrentWorkspace(null)
+            setError(err.message || "Failed to load workspaces")
+            setLoading(false)
+          }
+        )
+      } catch (err) {
         if (cancelled) return
-        console.error("[WorkspaceProvider] subscribeToUserWorkspaces failed", err)
+        console.error("[WorkspaceProvider] auth token readiness failed", err)
         setWorkspaces([])
         setCurrentWorkspace(null)
-        setError(err.message || "Failed to load workspaces")
+        setError((err as Error).message || "Failed to load workspaces")
         setLoading(false)
       }
-    )
+    })()
 
     return () => {
       cancelled = true
-      unsubscribe()
+      unsubscribe?.()
     }
   }, [authLoading, user])
 

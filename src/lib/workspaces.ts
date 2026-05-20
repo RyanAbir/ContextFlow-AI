@@ -2,7 +2,6 @@ import {
   addDoc,
   collection,
   collectionGroup,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -146,6 +145,12 @@ export function subscribeToUserWorkspaces(
   const ownedQuery = query(workspacesRef, where("ownerId", "==", userId), orderBy("createdAt", "desc"), limit(100))
   const membershipsQuery = query(collectionGroup(database, "members"), where("userId", "==", userId), limit(100))
 
+  console.debug("[Firestore:subscribeToUserWorkspaces] starting", {
+    userId,
+    ownedQuery: "workspaces where ownerId == currentUser orderBy createdAt desc limit 100",
+    membershipsQuery: "members collectionGroup where userId == currentUser limit 100",
+  })
+
   let ownedWorkspaces: Workspace[] = []
   let membershipWorkspaces: Workspace[] = []
   let ownedLoaded = false
@@ -166,6 +171,11 @@ export function subscribeToUserWorkspaces(
   const unsubscribeOwned = onSnapshot(
     ownedQuery,
     (snapshot) => {
+      console.debug("[Firestore:subscribeToUserWorkspaces] owned snapshot", {
+        userId,
+        count: snapshot.docs.length,
+        sample: snapshot.docs[0]?.data() ?? null,
+      })
       ownedWorkspaces = snapshot.docs.map((d) => mapWorkspace(d.id, d.data() as Record<string, unknown>))
       ownedLoaded = true
       emitIfReady()
@@ -179,6 +189,11 @@ export function subscribeToUserWorkspaces(
   const unsubscribeMemberships = onSnapshot(
     membershipsQuery,
     (snapshot) => {
+      console.debug("[Firestore:subscribeToUserWorkspaces] membership snapshot", {
+        userId,
+        count: snapshot.docs.length,
+        sample: snapshot.docs[0]?.data() ?? null,
+      })
       const memberships = snapshot.docs.map((d) => mapWorkspaceMember(d.data() as Record<string, unknown>))
       void getWorkspacesForMemberships(memberships)
         .then((workspaces) => {

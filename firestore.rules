@@ -101,11 +101,13 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
 
       // Read by owner or any workspace member
-      allow read: if isWorkspaceOwner(workspaceId) || isWorkspaceMemberDoc(workspaceId);
+      // Use the workspace document's ownerId directly so list queries stay rule-compatible.
+      allow read: if isSignedIn()
+        && (resource.data.ownerId == request.auth.uid || isWorkspaceMemberDoc(workspaceId));
 
       // Only owner may update or delete the workspace
-      allow update: if isWorkspaceOwner(workspaceId);
-      allow delete: if isWorkspaceOwner(workspaceId);
+      allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
 
       // Members subcollection
       match /members/{memberId} {
